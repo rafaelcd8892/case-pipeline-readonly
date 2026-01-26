@@ -61,6 +61,9 @@ These concerns belong to the future platform, not this prototype:
 - **Monday.com API access**  
   https://developer.monday.com/api-reference/docs/authentication
 
+- **Templating**
+  https://handlebarsjs.com/guide/
+
 Node.js is not required.
 
 ---
