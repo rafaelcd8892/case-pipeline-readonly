@@ -1,0 +1,18 @@
+{
+  "name": "case-pipeline",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "docxtemplater": "^3.67.6",
+    "dotenv": "^17.2.3",
+    "handlebars": "^4.7.8",
+    "pizzip": "^3.2.0"
+  }
+}
