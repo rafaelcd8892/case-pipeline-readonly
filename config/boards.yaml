@@ -1,0 +1,105 @@
+# =============================================================================
+# Monday.com Board Configuration
+# =============================================================================
+#
+# Board IDs can be overridden via environment variables:
+#   PROFILES_BOARD_ID, CONTRACTS_BOARD_ID
+#
+# Column resolution strategies:
+#   by_type  - Match by column type (email, phone, status, date, etc.)
+#   by_title - Match by title regex pattern
+#   by_id    - Exact column ID (fallback for edge cases)
+#
+# =============================================================================
+
+boards:
+  profiles:
+    id: "${PROFILES_BOARD_ID:18397286934}"
+    name: "Client Profiles"
+    columns:
+      # Standard columns resolved by type
+      email:
+        resolve: by_type
+        type: email
+
+      phone:
+        resolve: by_type
+        type: phone
+
+      # Status/priority - try by title first, then by type
+      priority:
+        resolve: by_title
+        pattern: "priority"
+        types: [status, color]
+        fallback:
+          resolve: by_type
+          type: status
+
+      # Date column
+      next_interaction:
+        resolve: by_type
+        type: date
+        fallback:
+          resolve: by_title
+          pattern: "date|interaction|next"
+
+      # Notes/text column
+      notes:
+        resolve: by_title
+        pattern: "notes|text"
+        types: [text, long_text]
+
+      # Board relation to contracts
+      contracts_relation:
+        resolve: by_type
+        type: board_relation
+
+      # Mirror columns - resolved by title pattern
+      case_type_mirror:
+        resolve: by_title
+        pattern: "case.*type|type"
+        types: [mirror, lookup]
+
+      contract_value_mirror:
+        resolve: by_title
+        pattern: "value|amount"
+        types: [mirror, lookup]
+
+      contract_casetype_mirror:
+        resolve: by_title
+        pattern: "casetype|case"
+        types: [mirror, lookup]
+
+      contract_id_mirror:
+        resolve: by_title
+        pattern: "contract.*id|id"
+        types: [mirror, lookup]
+
+  contracts:
+    id: "${CONTRACTS_BOARD_ID:18397312752}"
+    name: "Contracts"
+    columns:
+      case_type:
+        resolve: by_title
+        pattern: "case|type"
+        types: [status, dropdown]
+
+      value:
+        resolve: by_type
+        type: numbers
+        fallback:
+          resolve: by_title
+          pattern: "value|amount|price"
+
+      contract_id:
+        resolve: by_title
+        pattern: "contract.*id"
+        types: [text]
+
+      status:
+        resolve: by_type
+        type: status
+
+      profile_relation:
+        resolve: by_type
+        type: board_relation
