@@ -6,6 +6,7 @@
 import { faker } from "@faker-js/faker";
 import {
   CASE_TYPES,
+  CASE_FEE_SCHEDULE,
   PRIORITIES,
   CONTRACT_STATUSES,
   CONTRACT_VALUES,
@@ -255,6 +256,7 @@ export function getColumnContext(columnKey: string, columnType: string): Generat
 // Re-export business-specific constants (these remain static as they're domain-specific)
 export {
   CASE_TYPES,
+  CASE_FEE_SCHEDULE,
   PRIORITIES,
   CONTRACT_STATUSES,
   CONTRACT_VALUES,

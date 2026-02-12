@@ -103,18 +103,20 @@ async function main() {
       console.log(
         "ID".padEnd(6) +
           "Status".padEnd(12) +
-          "Profiles".padEnd(12) +
-          "Contracts".padEnd(12) +
+          "Profiles".padEnd(10) +
+          "Fee Ks".padEnd(10) +
+          "Items".padEnd(8) +
           "Created"
       );
-      console.log("-".repeat(62));
+      console.log("-".repeat(68));
 
       for (const batch of batches) {
         console.log(
           String(batch.id).padEnd(6) +
             batch.status.padEnd(12) +
-            String(batch.profileCount).padEnd(12) +
-            String(batch.contractCount).padEnd(12) +
+            String(batch.profileCount).padEnd(10) +
+            String(batch.contractCount).padEnd(10) +
+            String(batch.boardItemCount).padEnd(8) +
             batch.createdAt
         );
       }
@@ -142,7 +144,14 @@ async function main() {
     console.log("=".repeat(60));
     console.log(`  Batch ID: ${result.batchId}`);
     console.log(`  Profiles generated: ${result.profiles.generated}`);
-    console.log(`  Contracts generated: ${result.contracts.generated}`);
+    console.log(`  Fee Ks generated: ${result.feeKs.generated}`);
+    if (Object.keys(result.boardItems).length > 0) {
+      console.log(`  Board items:`);
+      for (const [board, count] of Object.entries(result.boardItems)) {
+        console.log(`    ${board}: ${count}`);
+      }
+    }
+    console.log(`  Relationships: ${result.relationships}`);
     console.log(`  Duration: ${elapsed}s`);
     console.log("=".repeat(60));
   } finally {

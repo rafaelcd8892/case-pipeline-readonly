@@ -1,18 +1,19 @@
 // =============================================================================
-// Contract Factory
+// Fee K (Contract) Factory
 // =============================================================================
 
 import type { Database } from "bun:sqlite";
 import type { BoardConfig } from "../../../../lib/config/types";
 import {
   generateContractId,
+  generateDate,
   setFakerSeed,
   faker,
-  CONTRACT_STATUSES,
   CASE_FEE_SCHEDULE,
+  CONTRACT_STATUSES,
 } from "./column-generators";
 
-export interface GeneratedContract {
+export interface GeneratedFeeK {
   localId: string;
   profileLocalId: string;
   name: string;
@@ -23,14 +24,14 @@ export interface GeneratedContract {
   columnValues: Record<string, unknown>;
 }
 
-export interface ContractFactoryOptions {
+export interface FeeKFactoryOptions {
   batchId: number;
   boardConfig: BoardConfig;
   profileLocalId: string;
   profileName: string;
 }
 
-export class ContractFactory {
+export class FeeKFactory {
   private db: Database;
 
   constructor(db: Database, seed?: number) {
@@ -40,10 +41,7 @@ export class ContractFactory {
     }
   }
 
-  /**
-   * Generates a single contract
-   */
-  generate(options: ContractFactoryOptions): GeneratedContract {
+  generate(options: FeeKFactoryOptions): GeneratedFeeK {
     const caseFee = faker.helpers.arrayElement(CASE_FEE_SCHEDULE);
     const caseType = caseFee.caseType;
     const value = caseFee.fee;
@@ -52,11 +50,18 @@ export class ContractFactory {
     const localId = faker.string.uuid();
     const name = `${options.profileName} - ${caseType}`;
 
+    const ff = faker.number.int({ min: 0, max: 1500 });
+    const pf = faker.number.int({ min: 0, max: 500 });
+    const hireDate = generateDate(-90, -1);
+
     const columnValues = this.buildColumnValues(options.boardConfig, {
       caseType,
       value,
       contractId,
       status,
+      ff,
+      pf,
+      hireDate,
     });
 
     return {
@@ -71,34 +76,25 @@ export class ContractFactory {
     };
   }
 
-  /**
-   * Generates and persists a single contract
-   */
-  generateAndPersist(options: ContractFactoryOptions): GeneratedContract {
-    const contract = this.generate(options);
-    this.persist(contract, options.batchId);
-    return contract;
+  generateAndPersist(options: FeeKFactoryOptions): GeneratedFeeK {
+    const feeK = this.generate(options);
+    this.persist(feeK, options.batchId);
+    return feeK;
   }
 
-  /**
-   * Generates a batch of contracts for a profile
-   */
   generateBatchForProfile(
     count: number,
-    options: ContractFactoryOptions
-  ): GeneratedContract[] {
-    const contracts: GeneratedContract[] = [];
+    options: FeeKFactoryOptions
+  ): GeneratedFeeK[] {
+    const feeKs: GeneratedFeeK[] = [];
     for (let i = 0; i < count; i++) {
-      const contract = this.generateAndPersist(options);
-      contracts.push(contract);
+      const feeK = this.generateAndPersist(options);
+      feeKs.push(feeK);
     }
-    return contracts;
+    return feeKs;
   }
 
-  /**
-   * Persists a contract to the database
-   */
-  persist(contract: GeneratedContract, batchId: number): void {
+  persist(feeK: GeneratedFeeK, batchId: number): void {
     const stmt = this.db.prepare(`
       INSERT INTO contracts (
         batch_id, local_id, profile_local_id, name,
@@ -108,77 +104,86 @@ export class ContractFactory {
 
     stmt.run(
       batchId,
-      contract.localId,
-      contract.profileLocalId,
-      contract.name,
-      contract.caseType,
-      contract.value,
-      contract.contractId,
-      contract.status,
-      JSON.stringify(contract.columnValues)
+      feeK.localId,
+      feeK.profileLocalId,
+      feeK.name,
+      feeK.caseType,
+      feeK.value,
+      feeK.contractId,
+      feeK.status,
+      JSON.stringify(feeK.columnValues)
     );
   }
 
-  /**
-   * Builds Monday.com column values based on board config
-   */
   private buildColumnValues(
     boardConfig: BoardConfig,
-    data: { caseType: string; value: number; contractId: string; status: string }
+    data: {
+      caseType: string;
+      value: number;
+      contractId: string;
+      status: string;
+      ff: number;
+      pf: number;
+      hireDate: string;
+    }
   ): Record<string, unknown> {
     const values: Record<string, unknown> = {};
 
     for (const [key, resolution] of Object.entries(boardConfig.columns)) {
-      const type = resolution.type ?? this.getTypeFromResolution(resolution);
-
+      const type = resolution.type ?? resolution.types?.[0];
       if (!type) continue;
 
-      // Case type column
-      if (key === "case_type" || key.includes("case_type")) {
-        if (type === "status" || type === "color") {
-          values[key] = { label: data.caseType };
-        } else if (type === "dropdown") {
-          values[key] = { labels: [data.caseType] };
-        } else if (type === "text") {
-          values[key] = data.caseType;
-        }
-        continue;
-      }
-
-      // Value/amount column
-      if (key === "value" || key.includes("value") || key.includes("amount")) {
-        if (type === "numbers") {
-          values[key] = data.value.toString();
-        }
-        continue;
-      }
-
-      // Contract ID column
-      if (key === "contract_id" || key.includes("contract_id")) {
-        if (type === "text") {
-          values[key] = data.contractId;
-        }
-        continue;
-      }
-
-      // Status column (different from case_type)
-      if (key === "status" && !key.includes("case")) {
+      // Contract stage / status
+      if (key === "contract_stage" || key === "status") {
         if (type === "status" || type === "color") {
           values[key] = { label: data.status };
         }
         continue;
       }
 
-      // Skip relation/mirror types - handled during sync
+      // Contract for (case type as dropdown)
+      if (key === "contract_for") {
+        if (type === "dropdown") {
+          values[key] = { labels: [data.caseType] };
+        }
+        continue;
+      }
+
+      // Attorney Fee
+      if (key === "af") {
+        if (type === "numbers") {
+          values[key] = data.value.toString();
+        }
+        continue;
+      }
+
+      // Filing Fee
+      if (key === "ff") {
+        if (type === "numbers") {
+          values[key] = data.ff.toString();
+        }
+        continue;
+      }
+
+      // Processing Fee
+      if (key === "pf") {
+        if (type === "numbers") {
+          values[key] = data.pf.toString();
+        }
+        continue;
+      }
+
+      // Hire date
+      if (key === "hire_date") {
+        if (type === "date") {
+          values[key] = { date: data.hireDate };
+        }
+        continue;
+      }
+
+      // Skip relation/mirror/readonly types
     }
 
     return values;
-  }
-
-  /**
-   * Extracts type from resolution when using by_title with types array
-   */
-  private getTypeFromResolution(resolution: { types?: string[] }): string | undefined {
-    return resolution.types?.[0];
   }
 }

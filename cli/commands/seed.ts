@@ -110,9 +110,9 @@ export async function seedCommand(args: string[]): Promise<void> {
 
       console.log("\nExisting batches:\n");
       console.log(
-        "  ID   Created              Status      Profiles  Contracts"
+        "  ID   Created              Status      Profiles  Fee Ks  Board Items"
       );
-      console.log("  " + "-".repeat(62));
+      console.log("  " + "-".repeat(74));
 
       for (const batch of batches) {
         console.log(
@@ -120,7 +120,8 @@ export async function seedCommand(args: string[]): Promise<void> {
             `${batch.createdAt.slice(0, 19).padEnd(20)} ` +
             `${batch.status.padEnd(11)} ` +
             `${batch.profileCount.toString().padStart(8)}  ` +
-            `${batch.contractCount.toString().padStart(9)}`
+            `${batch.contractCount.toString().padStart(6)}  ` +
+            `${batch.boardItemCount.toString().padStart(11)}`
         );
       }
       console.log();
@@ -146,7 +147,14 @@ export async function seedCommand(args: string[]): Promise<void> {
     console.log("Summary:");
     console.log(`  Batch ID: ${result.batchId}`);
     console.log(`  Profiles generated: ${result.profiles.generated}`);
-    console.log(`  Contracts generated: ${result.contracts.generated}`);
+    console.log(`  Fee Ks generated: ${result.feeKs.generated}`);
+    if (Object.keys(result.boardItems).length > 0) {
+      console.log(`  Board items:`);
+      for (const [board, count] of Object.entries(result.boardItems)) {
+        console.log(`    ${board}: ${count}`);
+      }
+    }
+    console.log(`  Relationships: ${result.relationships}`);
     console.log(`  Duration: ${(result.duration / 1000).toFixed(1)}s`);
   } finally {
     seeder.cleanup();
