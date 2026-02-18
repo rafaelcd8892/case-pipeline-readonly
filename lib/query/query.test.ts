@@ -13,6 +13,7 @@ import {
   getClientBoardItems,
   getBoardItemDetail,
   getClientCaseSummary,
+  getClientUpdates,
 } from "./index";
 
 // =============================================================================
@@ -100,6 +101,38 @@ function insertBoardItem(
       opts.profileLocalId ?? null,
       opts.groupTitle ?? null,
       JSON.stringify(opts.columnValues ?? {}),
+    ]
+  );
+}
+
+function insertUpdate(
+  db: Database,
+  batchId: number,
+  opts: {
+    localId: string;
+    profileLocalId: string;
+    boardItemLocalId?: string;
+    boardKey?: string;
+    authorName: string;
+    authorEmail?: string;
+    textBody: string;
+    bodyHtml?: string;
+    sourceType?: string;
+    replyToUpdateId?: string;
+    createdAtSource: string;
+  }
+) {
+  db.run(
+    `INSERT INTO client_updates (batch_id, local_id, profile_local_id, board_item_local_id, board_key,
+      author_name, author_email, text_body, body_html, source_type, reply_to_update_id, created_at_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      batchId, opts.localId, opts.profileLocalId,
+      opts.boardItemLocalId ?? null, opts.boardKey ?? null,
+      opts.authorName, opts.authorEmail ?? null,
+      opts.textBody, opts.bodyHtml ?? null,
+      opts.sourceType ?? "update", opts.replyToUpdateId ?? null,
+      opts.createdAtSource,
     ]
   );
 }
@@ -557,6 +590,119 @@ describe("getClientCaseSummary", () => {
     expect(summary!.contracts.closed).toEqual([]);
     expect(Object.keys(summary!.boardItems)).toEqual([]);
     expect(summary!.appointments).toEqual([]);
+    db.close();
+  });
+
+  test("includes updates in case summary", () => {
+    const db = freshDb();
+    const batchId = insertBatch(db);
+    insertProfile(db, batchId, { localId: "p1", name: "Test Client" });
+    insertUpdate(db, batchId, {
+      localId: "u1", profileLocalId: "p1", authorName: "Mayra Ruiz",
+      textBody: "Filed I-589", createdAtSource: "2026-02-17T10:00:00.000Z",
+    });
+
+    const summary = getClientCaseSummary(db, "p1");
+    expect(summary!.updates.length).toBe(1);
+    expect(summary!.updates[0]!.textBody).toBe("Filed I-589");
+    db.close();
+  });
+});
+
+// =============================================================================
+// Client Updates Tests
+// =============================================================================
+
+describe("getClientUpdates", () => {
+  test("returns updates for a profile", () => {
+    const db = freshDb();
+    const batchId = insertBatch(db);
+    insertProfile(db, batchId, { localId: "p1", name: "Test Client" });
+    insertUpdate(db, batchId, {
+      localId: "u1", profileLocalId: "p1", authorName: "Mayra Ruiz",
+      textBody: "Spoke to client", createdAtSource: "2026-02-17T10:00:00.000Z",
+    });
+    insertUpdate(db, batchId, {
+      localId: "u2", profileLocalId: "p1", authorName: "Rafael Contreras",
+      textBody: "Filed motion", boardKey: "court_cases",
+      createdAtSource: "2026-02-18T14:00:00.000Z",
+    });
+
+    const updates = getClientUpdates(db, "p1");
+    expect(updates.length).toBe(2);
+    expect(updates[0]!.textBody).toBe("Filed motion"); // Newest first
+    expect(updates[1]!.textBody).toBe("Spoke to client");
+    db.close();
+  });
+
+  test("respects limit parameter", () => {
+    const db = freshDb();
+    const batchId = insertBatch(db);
+    insertProfile(db, batchId, { localId: "p1", name: "Test Client" });
+
+    for (let i = 0; i < 5; i++) {
+      insertUpdate(db, batchId, {
+        localId: `u${i}`, profileLocalId: "p1", authorName: "Staff",
+        textBody: `Note ${i}`, createdAtSource: `2026-02-${10 + i}T10:00:00.000Z`,
+      });
+    }
+
+    const updates = getClientUpdates(db, "p1", 3);
+    expect(updates.length).toBe(3);
+    db.close();
+  });
+
+  test("does not leak updates across profiles", () => {
+    const db = freshDb();
+    const batchId = insertBatch(db);
+    insertProfile(db, batchId, { localId: "p1", name: "Client A" });
+    insertProfile(db, batchId, { localId: "p2", name: "Client B" });
+    insertUpdate(db, batchId, {
+      localId: "u1", profileLocalId: "p1", authorName: "Staff",
+      textBody: "Note for A", createdAtSource: "2026-02-17T10:00:00.000Z",
+    });
+    insertUpdate(db, batchId, {
+      localId: "u2", profileLocalId: "p2", authorName: "Staff",
+      textBody: "Note for B", createdAtSource: "2026-02-17T11:00:00.000Z",
+    });
+
+    const updatesA = getClientUpdates(db, "p1");
+    expect(updatesA.length).toBe(1);
+    expect(updatesA[0]!.textBody).toBe("Note for A");
+
+    const updatesB = getClientUpdates(db, "p2");
+    expect(updatesB.length).toBe(1);
+    expect(updatesB[0]!.textBody).toBe("Note for B");
+    db.close();
+  });
+
+  test("returns replies with correct sourceType and replyToUpdateId", () => {
+    const db = freshDb();
+    const batchId = insertBatch(db);
+    insertProfile(db, batchId, { localId: "p1", name: "Test Client" });
+    insertUpdate(db, batchId, {
+      localId: "u1", profileLocalId: "p1", authorName: "Mayra Ruiz",
+      textBody: "Original note", createdAtSource: "2026-02-17T10:00:00.000Z",
+    });
+    insertUpdate(db, batchId, {
+      localId: "u2", profileLocalId: "p1", authorName: "Rafael Contreras",
+      textBody: "Got it", sourceType: "reply", replyToUpdateId: "u1",
+      createdAtSource: "2026-02-17T10:30:00.000Z",
+    });
+
+    const updates = getClientUpdates(db, "p1");
+    const reply = updates.find((u) => u.sourceType === "reply");
+    expect(reply).toBeDefined();
+    expect(reply!.replyToUpdateId).toBe("u1");
+    expect(reply!.textBody).toBe("Got it");
+    db.close();
+  });
+
+  test("returns empty array for unknown profile", () => {
+    const db = freshDb();
+    initializeSchema(db);
+    const updates = getClientUpdates(db, "nonexistent");
+    expect(updates).toEqual([]);
     db.close();
   });
 });

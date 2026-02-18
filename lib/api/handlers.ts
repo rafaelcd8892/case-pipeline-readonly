@@ -5,10 +5,12 @@
 import type { Database } from "bun:sqlite";
 import {
   searchClients,
+  listProfiles,
   getClientCaseSummary,
   getClientContracts,
   getClientBoardItems,
   getBoardItemDetail,
+  getClientUpdates,
 } from "../query";
 
 // =============================================================================
@@ -26,6 +28,11 @@ function error(message: string, status: number): Response {
 // =============================================================================
 // Handlers
 // =============================================================================
+
+export function handleListClients(_req: Request, db: Database): Response {
+  const profiles = listProfiles(db);
+  return json(profiles);
+}
 
 export function handleSearch(req: Request, db: Database): Response {
   const url = new URL(req.url);
@@ -77,6 +84,18 @@ export function handleBoardItemDetail(req: Request, db: Database): Response {
   if (!item) return error("Board item not found", 404);
 
   return json(item);
+}
+
+export function handleClientUpdates(req: Request, db: Database): Response {
+  const localId = extractParam(req, "localId");
+  if (!localId) return error("Missing localId", 400);
+
+  const url = new URL(req.url);
+  const limitParam = url.searchParams.get("limit");
+  const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 50, 200) : 50;
+
+  const updates = getClientUpdates(db, localId, limit);
+  return json(updates);
 }
 
 // =============================================================================

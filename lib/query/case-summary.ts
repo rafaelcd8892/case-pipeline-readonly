@@ -7,6 +7,7 @@ import type { ClientCaseSummary } from "./types";
 import { getClientProfile } from "./client";
 import { getClientContracts } from "./contracts";
 import { getClientBoardItems } from "./board-items";
+import { getClientUpdates } from "./updates";
 
 /**
  * Get the full 360-degree case summary for a client.
@@ -21,11 +22,13 @@ export function getClientCaseSummary(
 
   const contracts = getClientContracts(db, profileLocalId);
   const { byBoard, appointments } = getClientBoardItems(db, profileLocalId);
+  const updates = getClientUpdates(db, profileLocalId);
 
   return {
     profile,
     contracts,
     boardItems: byBoard,
     appointments,
+    updates,
   };
 }

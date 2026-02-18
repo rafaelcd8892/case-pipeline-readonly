@@ -25,10 +25,12 @@ import {
   generateAppointmentData,
   generateJailIntakeData,
 } from "../factory/board-generators";
+import { UpdateFactory } from "../factory/update-factory";
 import { setFakerSeed, faker } from "../factory/column-generators";
 import { loadBoardsConfig } from "../../../../lib/config";
 import { CASE_TYPE_BOARD_MAP, ATTORNEY_BOARDS } from "../constants";
 import type { BoardDestination } from "../constants";
+import { seedRealProfiles } from "../fixtures/real-profiles";
 
 // =============================================================================
 // Types
@@ -52,6 +54,7 @@ export interface SeederResult {
   profiles: { generated: number };
   feeKs: { generated: number };
   boardItems: BoardCounts;
+  updates: { generated: number };
   relationships: number;
   duration: number;
 }
@@ -130,6 +133,7 @@ export class Seeder {
       profiles: { generated: 0 },
       feeKs: { generated: 0 },
       boardItems: {},
+      updates: { generated: 0 },
       relationships: 0,
       duration: 0,
     };
@@ -148,7 +152,7 @@ export class Seeder {
       const boardItemFactory = new BoardItemFactory(this.db);
 
       // Phase 1: Generate profiles
-      console.log("\n[1/5] Generating profiles...");
+      console.log("\n[1/7] Generating profiles...");
       const profileFactory = new ProfileFactory(this.db, this.config.seed);
       const profiles = profileFactory.generateBatch(this.config.profileCount, {
         batchId,
@@ -158,7 +162,7 @@ export class Seeder {
       console.log(`  Generated ${profiles.length} profiles`);
 
       // Phase 2: Generate Fee Ks + work board items
-      console.log("\n[2/5] Generating fee Ks and work board items...");
+      console.log("\n[2/7] Generating fee Ks and work board items...");
       const feeKFactory = new FeeKFactory(this.db, this.config.seed);
 
       for (const profile of profiles) {
@@ -229,16 +233,25 @@ export class Seeder {
       }
 
       // Phase 3: Direct-from-profile boards
-      console.log("\n[3/5] Generating direct-from-profile items...");
+      console.log("\n[3/7] Generating direct-from-profile items...");
       this.generateDirectItems(batchId, profiles, boardItemFactory, result);
 
       // Phase 4: Appointments (entry points)
-      console.log("\n[4/5] Generating appointments...");
+      console.log("\n[4/7] Generating appointments...");
       this.generateAppointments(batchId, profiles, boardItemFactory, result);
 
       // Phase 5: Jail Intakes
-      console.log("\n[5/5] Generating jail intakes...");
+      console.log("\n[5/7] Generating jail intakes...");
       this.generateJailIntakes(batchId, profiles, boardItemFactory, result);
+
+      // Phase 6: Client Updates
+      console.log("\n[6/7] Generating client updates...");
+      this.generateUpdates(batchId, profiles, result);
+
+      // Phase 7: Real profile fixtures (from sampled Monday.com data)
+      console.log("\n[7/7] Seeding real profile fixtures...");
+      const fixtureCount = seedRealProfiles(this.db, batchId);
+      result.profiles.generated += fixtureCount;
 
       this.updateBatchStatus(batchId, "generated");
       result.duration = performance.now() - startTime;
@@ -387,6 +400,39 @@ export class Seeder {
       result.boardItems._fa_jail_intakes = count;
       console.log(`  Generated ${count} jail intakes`);
     }
+  }
+
+  /**
+   * Generate updates/case notes for each profile
+   */
+  private generateUpdates(
+    batchId: number,
+    profiles: GeneratedProfile[],
+    result: SeederResult
+  ): void {
+    const updateFactory = new UpdateFactory(this.db);
+
+    for (const profile of profiles) {
+      // Get this profile's board items for linking
+      const rows = this.db
+        .prepare(
+          "SELECT local_id, board_key FROM board_items WHERE batch_id = ? AND profile_local_id = ?"
+        )
+        .all(batchId, profile.localId) as Array<{ local_id: string; board_key: string }>;
+
+      const boardItems = rows.map((r) => ({
+        localId: r.local_id,
+        boardKey: r.board_key,
+      }));
+
+      const updates = updateFactory.generateBatchForProfile(
+        batchId,
+        profile.localId,
+        boardItems
+      );
+      result.updates.generated += updates.length;
+    }
+    console.log(`  Generated ${result.updates.generated} updates`);
   }
 
   /**

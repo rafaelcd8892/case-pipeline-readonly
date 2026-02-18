@@ -56,6 +56,19 @@ export function getClientProfile(db: Database, localId: string): ProfileSummary 
 }
 
 /**
+ * List all profiles, ordered by name
+ */
+export function listProfiles(db: Database): SearchResult[] {
+  return db
+    .prepare(`
+      SELECT local_id AS localId, name, email, phone
+      FROM profiles
+      ORDER BY name
+    `)
+    .all() as SearchResult[];
+}
+
+/**
  * Get a profile by name (exact match)
  */
 export function getClientByName(db: Database, name: string): ProfileSummary | null {

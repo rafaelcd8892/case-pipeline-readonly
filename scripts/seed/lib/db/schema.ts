@@ -4,7 +4,7 @@
 
 import type { Database } from "bun:sqlite";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const SCHEMA_SQL = `
 -- =============================================================================
@@ -81,6 +81,30 @@ CREATE TABLE IF NOT EXISTS board_items (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     synced_at TEXT
 );
+
+-- Client updates (case notes, replies) from Monday.com updates
+CREATE TABLE IF NOT EXISTS client_updates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id INTEGER NOT NULL REFERENCES seed_batches(id) ON DELETE CASCADE,
+    local_id TEXT NOT NULL UNIQUE,
+    monday_update_id TEXT,
+    profile_local_id TEXT NOT NULL,
+    board_item_local_id TEXT,
+    board_key TEXT,
+    author_name TEXT NOT NULL,
+    author_email TEXT,
+    text_body TEXT NOT NULL,
+    body_html TEXT,
+    source_type TEXT NOT NULL DEFAULT 'update',
+    reply_to_update_id TEXT,
+    created_at_source TEXT NOT NULL,
+    raw_json TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_updates_profile ON client_updates(profile_local_id);
+CREATE INDEX IF NOT EXISTS idx_updates_board_item ON client_updates(board_item_local_id);
+CREATE INDEX IF NOT EXISTS idx_updates_created ON client_updates(created_at_source);
 
 -- Relationships between items
 CREATE TABLE IF NOT EXISTS item_relationships (
@@ -238,6 +262,39 @@ export function initializeSchema(db: Database): void {
       `);
     }
 
+    // Migration v3 → v4: client_updates table
+    if (fromVersion < 4) {
+      const hasTable = db
+        .query("SELECT name FROM sqlite_master WHERE type='table' AND name='client_updates'")
+        .get();
+      if (!hasTable) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS client_updates (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              batch_id INTEGER NOT NULL REFERENCES seed_batches(id) ON DELETE CASCADE,
+              local_id TEXT NOT NULL UNIQUE,
+              monday_update_id TEXT,
+              profile_local_id TEXT NOT NULL,
+              board_item_local_id TEXT,
+              board_key TEXT,
+              author_name TEXT NOT NULL,
+              author_email TEXT,
+              text_body TEXT NOT NULL,
+              body_html TEXT,
+              source_type TEXT NOT NULL DEFAULT 'update',
+              reply_to_update_id TEXT,
+              created_at_source TEXT NOT NULL,
+              raw_json TEXT,
+              sync_status TEXT NOT NULL DEFAULT 'pending',
+              created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_updates_profile ON client_updates(profile_local_id);
+          CREATE INDEX IF NOT EXISTS idx_updates_board_item ON client_updates(board_item_local_id);
+          CREATE INDEX IF NOT EXISTS idx_updates_created ON client_updates(created_at_source);
+        `);
+      }
+    }
+
     db.exec(`UPDATE schema_version SET version = ${SCHEMA_VERSION}`);
     console.log(`  Database schema migrated to v${SCHEMA_VERSION}`);
   }
@@ -274,6 +331,7 @@ export function resetDatabase(db: Database): void {
     DROP TRIGGER IF EXISTS profiles_ai;
     DROP TRIGGER IF EXISTS profiles_ad;
     DROP TRIGGER IF EXISTS profiles_au;
+    DROP TABLE IF EXISTS client_updates;
     DROP TABLE IF EXISTS item_relationships;
     DROP TABLE IF EXISTS board_items;
     DROP TABLE IF EXISTS contracts;

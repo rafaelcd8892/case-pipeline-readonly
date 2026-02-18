@@ -4,14 +4,17 @@ import { ProfileCard } from "./ProfileCard";
 import { ContractsSection } from "./ContractsSection";
 import { BoardSection } from "./BoardSection";
 import { AppointmentSection } from "./AppointmentSection";
+import { UpdatesTimeline } from "./UpdatesTimeline";
 
 interface Props {
   data: ClientCaseSummary;
 }
 
 export function ClientView({ data }: Props) {
+  let delay = 2; // start after profile (0) and contracts (1)
+
   return (
-    <div>
+    <div className="space-y-4">
       <ProfileCard profile={data.profile} />
       <ContractsSection contracts={data.contracts} />
 
@@ -20,11 +23,21 @@ export function ClientView({ data }: Props) {
         const hasItems = boards.some((b) => (data.boardItems[b.key]?.length ?? 0) > 0);
         if (!hasItems) return null;
 
+        const sectionDelay = delay++;
+
         return (
-          <div key={section} className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-              {SECTION_LABELS[section]}
-            </h3>
+          <div
+            key={section}
+            className={`animate-in animate-in-delay-${Math.min(sectionDelay, 5)}`}
+          >
+            <div className="section-divider">
+              <span
+                className="text-[11px] font-semibold uppercase tracking-widest"
+                style={{ color: "var(--color-ink-faint)", fontFamily: "var(--font-body)" }}
+              >
+                {SECTION_LABELS[section]}
+              </span>
+            </div>
             {boards.map((board) => {
               const items = data.boardItems[board.key];
               if (!items || items.length === 0) return null;
@@ -34,7 +47,13 @@ export function ClientView({ data }: Props) {
         );
       })}
 
-      <AppointmentSection appointments={data.appointments} />
+      <div className={`animate-in animate-in-delay-${Math.min(delay, 5)}`}>
+        <AppointmentSection appointments={data.appointments} />
+      </div>
+
+      <div className={`animate-in animate-in-delay-${Math.min(delay + 1, 5)}`}>
+        <UpdatesTimeline updates={data.updates} />
+      </div>
     </div>
   );
 }

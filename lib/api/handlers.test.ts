@@ -11,6 +11,7 @@ import {
   handleClientContracts,
   handleClientBoardItems,
   handleBoardItemDetail,
+  handleClientUpdates,
 } from "./handlers";
 
 // =============================================================================
@@ -64,6 +65,18 @@ beforeAll(() => {
     `INSERT INTO board_items (batch_id, local_id, board_key, name, status, next_date, attorney, profile_local_id, group_title, column_values)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [batchId, "bi2", "appointments_r", "Maria Garcia", "Completed", "2026-01-10", null, "p1", "Past Consults", '{"language":{"label":"Spanish"}}']
+  );
+
+  // Client updates
+  db.run(
+    `INSERT INTO client_updates (batch_id, local_id, profile_local_id, board_item_local_id, board_key, author_name, author_email, text_body, body_html, source_type, reply_to_update_id, created_at_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [batchId, "u1", "p1", "bi1", "court_cases", "Mayra Ruiz", "mayra@test.com", "Filed I-589", "<p>Filed I-589</p>", "update", null, "2026-02-17T10:00:00.000Z"]
+  );
+  db.run(
+    `INSERT INTO client_updates (batch_id, local_id, profile_local_id, board_item_local_id, board_key, author_name, author_email, text_body, body_html, source_type, reply_to_update_id, created_at_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [batchId, "u2", "p1", null, null, "Rafael Contreras", "rafael@test.com", "Called client", "<p>Called client</p>", "update", null, "2026-02-18T14:00:00.000Z"]
   );
 });
 
@@ -212,5 +225,39 @@ describe("handleBoardItemDetail", () => {
     expect(res.status).toBe(404);
     const body = (await res.json()) as any;
     expect(body.error).toBe("Board item not found");
+  });
+});
+
+// =============================================================================
+// Client Updates Tests
+// =============================================================================
+
+describe("handleClientUpdates", () => {
+  test("returns updates for valid client", async () => {
+    const req = makeRequest("http://localhost:3000/api/clients/p1/updates", { localId: "p1" });
+    const res = handleClientUpdates(req, db);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.data.length).toBe(2);
+    expect(body.data[0].textBody).toBe("Called client"); // Newest first
+  });
+
+  test("respects limit query param", async () => {
+    const req = makeRequest("http://localhost:3000/api/clients/p1/updates?limit=1", { localId: "p1" });
+    const res = handleClientUpdates(req, db);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.data.length).toBe(1);
+  });
+
+  test("returns empty array for unknown client", async () => {
+    const req = makeRequest("http://localhost:3000/api/clients/unknown/updates", { localId: "unknown" });
+    const res = handleClientUpdates(req, db);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.data).toEqual([]);
   });
 });

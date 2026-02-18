@@ -30,6 +30,20 @@ export interface BoardItemSummary {
   columnValues: Record<string, unknown>;
 }
 
+export interface ClientUpdate {
+  localId: string;
+  profileLocalId: string;
+  boardItemLocalId: string | null;
+  boardKey: string | null;
+  authorName: string;
+  authorEmail: string | null;
+  textBody: string;
+  bodyHtml: string | null;
+  sourceType: "update" | "reply";
+  replyToUpdateId: string | null;
+  createdAtSource: string;
+}
+
 export interface ClientCaseSummary {
   profile: ProfileSummary;
   contracts: {
@@ -38,6 +52,7 @@ export interface ClientCaseSummary {
   };
   boardItems: Record<string, BoardItemSummary[]>;
   appointments: BoardItemSummary[];
+  updates: ClientUpdate[];
 }
 
 export interface SearchResult {

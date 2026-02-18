@@ -5,11 +5,13 @@
 import { Database } from "bun:sqlite";
 import { validateSchema } from "./scripts/seed/lib/db/schema";
 import {
+  handleListClients,
   handleSearch,
   handleClientDetail,
   handleClientContracts,
   handleClientBoardItems,
   handleBoardItemDetail,
+  handleClientUpdates,
 } from "./lib/api/handlers";
 import homepage from "./web/index.html";
 
@@ -32,6 +34,9 @@ const server = Bun.serve({
   routes: {
     "/": homepage,
 
+    "/api/clients": {
+      GET: (req) => handleListClients(req, db),
+    },
     "/api/clients/search": {
       GET: (req) => handleSearch(req, db),
     },
@@ -43,6 +48,9 @@ const server = Bun.serve({
     },
     "/api/clients/:localId/board-items": {
       GET: (req) => handleClientBoardItems(req, db),
+    },
+    "/api/clients/:localId/updates": {
+      GET: (req) => handleClientUpdates(req, db),
     },
     "/api/board-items/:localId": {
       GET: (req) => handleBoardItemDetail(req, db),

@@ -9,14 +9,27 @@ function formatDate(dateStr: string | null): string {
 
 export function BoardItemRow({ item }: { item: BoardItemSummary }) {
   return (
-    <div className="flex items-center gap-3 py-2 px-3 border-b border-gray-100 last:border-0">
+    <div
+      className="flex items-center gap-3 py-2.5 px-4 transition-colors"
+      style={{ borderBottom: "1px solid var(--color-border-light)" }}
+    >
       <StatusBadge status={item.status} />
-      <span className="font-medium text-gray-900 flex-1 min-w-0 truncate">{item.name}</span>
+      <span
+        className="font-medium flex-1 min-w-0 truncate text-sm"
+        style={{ color: "var(--color-ink)", fontFamily: "var(--font-body)" }}
+      >
+        {item.name}
+      </span>
       {item.nextDate && (
-        <span className="text-sm text-gray-500 whitespace-nowrap">{formatDate(item.nextDate)}</span>
+        <span
+          className="text-xs whitespace-nowrap"
+          style={{ color: "var(--color-ink-faint)", fontFamily: "var(--font-mono)" }}
+        >
+          {formatDate(item.nextDate)}
+        </span>
       )}
       {item.attorney && (
-        <span className="text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-mono">
+        <span className="board-tag">
           {item.attorney}
         </span>
       )}

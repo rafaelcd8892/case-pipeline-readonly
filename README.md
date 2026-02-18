@@ -8,9 +8,11 @@ A config-driven read-only analysis and document generation platform for Monday.c
 
 ## Features
 
-- **Client Dashboard** - Web-based 360-degree view of any client: profile, contracts, active cases, pending items, and appointments
-- **Query Layer** - Typed functions for client search (FTS5), contracts, board items, and full case summaries
+- **Client Dashboard** - Web-based 360-degree view of any client: profile, contracts, active cases, pending items, appointments, and full updates/notes timeline
+- **Updates Timeline** - Centralized feed of all Monday.com updates, replies, and automation emails across every board — grouped by date with threaded replies
+- **Query Layer** - Typed functions for client search (FTS5), contracts, board items, updates, and full case summaries
 - **JSON API** - RESTful endpoints served by `Bun.serve()` for the dashboard and future integrations
+- **Real Profile Fixtures** - Handpicked real Monday.com profiles (Ashik, Jabez, Karen, Fernando) seeded alongside generated data for realistic testing
 - **Document Generation** - Create documents from Monday.com data using Handlebars templates with interactive profile selection
 - **Test Data Seeding** - Generate realistic test data locally with Faker.js and SQLite (no Monday.com sync)
 - **Configuration Sync** - Keep board configurations in sync with Monday.com using YAML-based definitions
@@ -132,7 +134,7 @@ Strategies can be chained for fallback behavior.
 │   ├── api/                  # API route handlers
 │   ├── config/               # Configuration loading
 │   ├── monday/               # Monday.com API client
-│   ├── query/                # Query layer (search, contracts, board items, case summary)
+│   ├── query/                # Query layer (search, contracts, board items, updates, case summary)
 │   ├── relationship-map/     # Board analysis
 │   └── template/             # Template rendering
 ├── web/
@@ -142,6 +144,8 @@ Strategies can be chained for fallback behavior.
 │   └── components/           # React components
 ├── scripts/
 │   ├── seed/                 # Data seeding tools
+│   │   └── lib/fixtures/     # Handpicked real profile fixtures
+│   ├── fetch-profile.ts      # Fetch any Monday.com profile by item ID
 │   └── sync-config/          # Configuration sync
 └── templates/                # Handlebars templates
 ```
@@ -174,6 +178,10 @@ bun run analyze          # Shortcut for analyze command
 ```
 
 ---
+
+## Design
+
+The dashboard uses a **warm editorial** aesthetic: Fraunces serif for display headings, Outfit sans-serif for body text, and a deep navy + amber accent palette. Updates are shown with author initials (deterministic colors), date-grouped sections, and threaded reply indentation.
 
 ## Documentation
 

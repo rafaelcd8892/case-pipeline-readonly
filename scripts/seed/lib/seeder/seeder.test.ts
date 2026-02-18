@@ -7,6 +7,7 @@ import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import { initializeSchema } from "../db/schema";
 import { BoardItemFactory } from "../factory/board-item-factory";
+import { UpdateFactory } from "../factory/update-factory";
 import { setFakerSeed, faker } from "../factory/column-generators";
 import type { BoardConfig } from "../../../../lib/config/types";
 
@@ -361,5 +362,77 @@ describe("FTS5 profile search", () => {
 
     expect(byEmail).toHaveLength(1);
     expect(byEmail[0]!.name).toBe("Jose Martinez");
+  });
+});
+
+// =============================================================================
+// Update Factory Tests
+// =============================================================================
+
+describe("UpdateFactory", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    setFakerSeed(42);
+    db = createTestDb();
+    // Insert a profile and board items to link against
+    db.prepare(
+      "INSERT INTO profiles (batch_id, local_id, name) VALUES (1, ?, ?)"
+    ).run("p1", "Test Client");
+    db.prepare(
+      "INSERT INTO board_items (batch_id, local_id, board_key, name, profile_local_id, column_values) VALUES (1, ?, ?, ?, ?, ?)"
+    ).run("bi1", "court_cases", "Test Court Case", "p1", "{}");
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  test("generates updates with valid references", () => {
+    const factory = new UpdateFactory(db);
+    const updates = factory.generateBatchForProfile(1, "p1", [
+      { localId: "bi1", boardKey: "court_cases" },
+    ]);
+
+    expect(updates.length).toBeGreaterThanOrEqual(2);
+
+    // All updates reference the correct profile
+    for (const u of updates) {
+      expect(u.profileLocalId).toBe("p1");
+    }
+
+    // Verify persisted in DB
+    const rows = db.prepare("SELECT COUNT(*) as cnt FROM client_updates WHERE batch_id = 1").get() as { cnt: number };
+    expect(rows.cnt).toBe(updates.length);
+  });
+
+  test("generates replies with replyToUpdateId", () => {
+    const factory = new UpdateFactory(db);
+    // Run with a seed that produces replies
+    setFakerSeed(7);
+    const updates = factory.generateBatchForProfile(1, "p1", [
+      { localId: "bi1", boardKey: "court_cases" },
+    ]);
+
+    const replies = updates.filter((u) => u.sourceType === "reply");
+    for (const reply of replies) {
+      expect(reply.replyToUpdateId).not.toBeNull();
+      // The parent update should exist
+      const parent = updates.find((u) => u.localId === reply.replyToUpdateId);
+      expect(parent).toBeDefined();
+    }
+  });
+
+  test("linked updates reference valid board items", () => {
+    const factory = new UpdateFactory(db);
+    const updates = factory.generateBatchForProfile(1, "p1", [
+      { localId: "bi1", boardKey: "court_cases" },
+    ]);
+
+    const linked = updates.filter((u) => u.boardItemLocalId !== null);
+    for (const u of linked) {
+      expect(u.boardItemLocalId).toBe("bi1");
+      expect(u.boardKey).toBe("court_cases");
+    }
   });
 });
