@@ -81,7 +81,7 @@ describe("handleSearch", () => {
     const res = handleSearch(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data.length).toBe(2);
     expect(body.data.map((r: any) => r.name).sort()).toEqual(["Carlos Garcia", "Maria Garcia"]);
   });
@@ -91,7 +91,7 @@ describe("handleSearch", () => {
     const res = handleSearch(req, db);
 
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toBeDefined();
   });
 
@@ -100,7 +100,7 @@ describe("handleSearch", () => {
     const res = handleSearch(req, db);
 
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toBeDefined();
   });
 
@@ -109,7 +109,7 @@ describe("handleSearch", () => {
     const res = handleSearch(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data).toEqual([]);
   });
 });
@@ -124,7 +124,7 @@ describe("handleClientDetail", () => {
     const res = handleClientDetail(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     const data = body.data;
 
     expect(data.profile.name).toBe("Maria Garcia");
@@ -139,7 +139,7 @@ describe("handleClientDetail", () => {
     const res = handleClientDetail(req, db);
 
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toBe("Client not found");
   });
 });
@@ -154,7 +154,7 @@ describe("handleClientContracts", () => {
     const res = handleClientContracts(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data.active.length).toBe(1);
     expect(body.data.active[0].caseType).toBe("I-485");
     expect(body.data.closed.length).toBe(1);
@@ -166,7 +166,7 @@ describe("handleClientContracts", () => {
     const res = handleClientContracts(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data.active).toEqual([]);
     expect(body.data.closed).toEqual([]);
   });
@@ -182,7 +182,7 @@ describe("handleClientBoardItems", () => {
     const res = handleClientBoardItems(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data.byBoard.court_cases).toBeDefined();
     expect(body.data.byBoard.court_cases.length).toBe(1);
     expect(body.data.appointments.length).toBe(1);
@@ -200,7 +200,7 @@ describe("handleBoardItemDetail", () => {
     const res = handleBoardItemDetail(req, db);
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.data.boardKey).toBe("appointments_r");
     expect(body.data.columnValues.language.label).toBe("Spanish");
   });
@@ -210,7 +210,7 @@ describe("handleBoardItemDetail", () => {
     const res = handleBoardItemDetail(req, db);
 
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.error).toBe("Board item not found");
   });
 });

@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { Database } from "bun:sqlite";
-import { initializeSchema } from "./scripts/seed/lib/db/schema";
+import { validateSchema } from "./scripts/seed/lib/db/schema";
 import {
   handleSearch,
   handleClientDetail,
@@ -19,7 +19,7 @@ import homepage from "./web/index.html";
 
 const DB_PATH = "data/seed.db";
 const db = new Database(DB_PATH, { readonly: true });
-initializeSchema(db);
+validateSchema(db);
 
 console.log(`Database loaded: ${DB_PATH}`);
 

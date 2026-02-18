@@ -54,14 +54,14 @@ export function getClientBoardItems(
       nextDate: row.nextDate,
       attorney: row.attorney,
       groupTitle: row.groupTitle,
-      columnValues: JSON.parse(row.column_values),
+      columnValues: safeParseJson(row.column_values),
     };
 
     if (APPOINTMENT_BOARD_KEYS.has(row.boardKey)) {
       appointments.push(item);
     } else {
-      if (!byBoard[row.boardKey]) byBoard[row.boardKey] = [];
-      byBoard[row.boardKey].push(item);
+      const arr = (byBoard[row.boardKey] ??= []);
+      arr.push(item);
     }
   }
 
@@ -95,6 +95,15 @@ export function getBoardItemDetail(
 
   return {
     ...row,
-    columnValues: JSON.parse(row.column_values),
+    columnValues: safeParseJson(row.column_values),
   };
+}
+
+function safeParseJson(value: string | null | undefined): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }

@@ -35,8 +35,12 @@ export function handleSearch(req: Request, db: Database): Response {
     return error("Missing required query parameter: q", 400);
   }
 
-  const results = searchClients(db, q);
-  return json(results);
+  try {
+    const results = searchClients(db, q);
+    return json(results);
+  } catch {
+    return error("Invalid search query", 400);
+  }
 }
 
 export function handleClientDetail(req: Request, db: Database): Response {

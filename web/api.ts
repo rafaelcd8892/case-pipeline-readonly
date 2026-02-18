@@ -8,7 +8,7 @@ export type { SearchResult, ClientCaseSummary, ProfileSummary, ContractSummary, 
 
 async function apiFetch<T>(url: string): Promise<T> {
   const res = await fetch(url);
-  const body = await res.json();
+  const body = (await res.json()) as { data?: T; error?: string };
   if (body.error) throw new Error(body.error);
   return body.data as T;
 }

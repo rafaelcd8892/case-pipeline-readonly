@@ -130,7 +130,7 @@ describe("searchClients", () => {
 
     const results = searchClients(db, "tracy");
     expect(results.length).toBe(1);
-    expect(results[0].name).toBe("Tracy Miller");
+    expect(results[0]!.name).toBe("Tracy Miller");
     db.close();
   });
 
@@ -263,7 +263,7 @@ describe("getClientContracts", () => {
 
     const { active, closed } = getClientContracts(db, "p1");
     expect(active.length).toBe(1);
-    expect(active[0].caseType).toBe("I-485");
+    expect(active[0]!.caseType).toBe("I-485");
     expect(closed.length).toBe(2);
     expect(closed.map((c) => c.status).sort()).toEqual(["Cancelled", "Completed"]);
     db.close();
@@ -349,12 +349,12 @@ describe("getClientBoardItems", () => {
 
     // Board items grouped
     expect(Object.keys(byBoard).sort()).toEqual(["_cd_open_forms", "court_cases"]);
-    expect(byBoard["court_cases"].length).toBe(2);
-    expect(byBoard["_cd_open_forms"].length).toBe(1);
+    expect(byBoard["court_cases"]!.length).toBe(2);
+    expect(byBoard["_cd_open_forms"]!.length).toBe(1);
 
     // Appointments separated
     expect(appointments.length).toBe(1);
-    expect(appointments[0].boardKey).toBe("appointments_r");
+    expect(appointments[0]!.boardKey).toBe("appointments_r");
     db.close();
   });
 
@@ -373,7 +373,7 @@ describe("getClientBoardItems", () => {
     });
 
     const { byBoard } = getClientBoardItems(db, "p1");
-    const item = byBoard["motions"][0];
+    const item = byBoard["motions"]![0]!;
     expect(item.columnValues).toEqual({ hearing_type: { label: "Master" }, motion: { labels: ["MTR"] } });
     db.close();
   });
@@ -387,7 +387,7 @@ describe("getClientBoardItems", () => {
     for (let i = 0; i < apptBoards.length; i++) {
       insertBoardItem(db, batchId, {
         localId: `appt-${i}`,
-        boardKey: apptBoards[i],
+        boardKey: apptBoards[i]!,
         name: "Test User",
         status: "Completed",
         profileLocalId: "p1",
@@ -530,17 +530,17 @@ describe("getClientCaseSummary", () => {
 
     // Contracts
     expect(summary!.contracts.active.length).toBe(1);
-    expect(summary!.contracts.active[0].caseType).toBe("I-485");
+    expect(summary!.contracts.active[0]!.caseType).toBe("I-485");
     expect(summary!.contracts.closed.length).toBe(1);
-    expect(summary!.contracts.closed[0].status).toBe("Completed");
+    expect(summary!.contracts.closed[0]!.status).toBe("Completed");
 
     // Board items
     expect(Object.keys(summary!.boardItems).sort()).toEqual(["_cd_open_forms", "court_cases"]);
-    expect(summary!.boardItems["court_cases"][0].status).toBe("Set for Hearing");
+    expect(summary!.boardItems["court_cases"]![0]!.status).toBe("Set for Hearing");
 
     // Appointments
     expect(summary!.appointments.length).toBe(1);
-    expect(summary!.appointments[0].boardKey).toBe("appointments_r");
+    expect(summary!.appointments[0]!.boardKey).toBe("appointments_r");
 
     db.close();
   });

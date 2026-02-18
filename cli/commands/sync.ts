@@ -46,7 +46,7 @@ export async function syncCommand(args: string[]): Promise<void> {
 
   // Delegate to existing sync-config script
   const proc = spawn({
-    cmd: ["bun", "scripts/sync-config/index.ts", ...args],
+    cmd: [process.execPath, "scripts/sync-config/index.ts", ...args],
     stdout: "inherit",
     stderr: "inherit",
     stdin: "inherit",

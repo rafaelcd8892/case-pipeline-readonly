@@ -222,13 +222,49 @@ export function initializeSchema(db: Database): void {
       // Backfill extracted columns from existing JSON data
       db.exec(`
         UPDATE board_items
-        SET status = json_extract(column_values, '$.status.label')
-        WHERE status IS NULL AND json_extract(column_values, '$.status.label') IS NOT NULL
+        SET
+          status = COALESCE(status, json_extract(column_values, '$.status.label')),
+          next_date = COALESCE(next_date,
+            json_extract(column_values, '$.x_next_hearing_date.date'),
+            json_extract(column_values, '$.next_hearing_date.date'),
+            json_extract(column_values, '$.due_date.date')
+          ),
+          attorney = COALESCE(attorney, json_extract(column_values, '$.attorney.label')),
+          profile_local_id = COALESCE(profile_local_id, json_extract(column_values, '$.profiles.value'))
+        WHERE status IS NULL
+           OR next_date IS NULL
+           OR attorney IS NULL
+           OR profile_local_id IS NULL
       `);
     }
 
     db.exec(`UPDATE schema_version SET version = ${SCHEMA_VERSION}`);
     console.log(`  Database schema migrated to v${SCHEMA_VERSION}`);
+  }
+}
+
+/**
+ * Validate that a read-only DB has the expected schema version.
+ * Throws if the schema is missing or outdated (requires re-seeding).
+ */
+export function validateSchema(db: Database): void {
+  const versionRow = db
+    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'")
+    .get();
+
+  if (!versionRow) {
+    throw new Error(
+      `Database has no schema. Run the seeder first: bun scripts/seed/index.ts`
+    );
+  }
+
+  const row = db.query("SELECT version FROM schema_version").get() as { version: number } | null;
+  const current = row?.version ?? 0;
+
+  if (current < SCHEMA_VERSION) {
+    throw new Error(
+      `Database schema is v${current}, expected v${SCHEMA_VERSION}. Re-seed to upgrade: bun scripts/seed/index.ts`
+    );
   }
 }
 

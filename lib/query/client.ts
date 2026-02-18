@@ -5,13 +5,24 @@
 import type { Database } from "bun:sqlite";
 import type { ProfileSummary, SearchResult } from "./types";
 
+/** FTS5 reserved words that must not appear as bare tokens in MATCH queries */
+const FTS5_RESERVED = new Set(["AND", "OR", "NOT", "NEAR"]);
+
 /**
  * Search clients by name, email, or phone using FTS5
  */
 export function searchClients(db: Database, query: string): SearchResult[] {
-  // Append * for prefix matching (e.g. "gar" matches "Garcia")
-  const ftsQuery = query.replace(/[^\w\s]/g, "").trim();
-  if (!ftsQuery) return [];
+  // Strip non-letter, non-number, non-whitespace (Unicode-aware)
+  const stripped = query.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+  if (!stripped) return [];
+
+  // Quote each token so FTS5 reserved words (AND/OR/NOT/NEAR) are treated as literals
+  const tokens = stripped.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return [];
+
+  const ftsQuery = tokens
+    .map((t) => (FTS5_RESERVED.has(t.toUpperCase()) ? `"${t}"` : t))
+    .join(" ");
 
   return db
     .prepare(`

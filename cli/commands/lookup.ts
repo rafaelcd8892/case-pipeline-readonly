@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { Database } from "bun:sqlite";
-import { initializeSchema } from "../../scripts/seed/lib/db/schema";
+import { validateSchema } from "../../scripts/seed/lib/db/schema";
 import {
   searchClients,
   getClientCaseSummary,
@@ -83,6 +83,7 @@ function printSummary(summary: ClientCaseSummary): void {
   if (boardKeys.length > 0) {
     for (const boardKey of boardKeys) {
       const items = boardItems[boardKey];
+      if (!items) continue;
       const displayName = BOARD_DISPLAY_NAMES[boardKey] ?? boardKey;
 
       console.log(`\n${"─".repeat(60)}`);
@@ -133,13 +134,13 @@ export async function lookupCommand(args: string[]): Promise<void> {
   }
 
   const db = new Database(DB_PATH, { readonly: true });
-  initializeSchema(db);
+  validateSchema(db);
 
   try {
     // Check for --id flag
     const idArg = args.find((a) => a.startsWith("--id="));
     if (idArg) {
-      const localId = idArg.split("=")[1];
+      const localId = idArg.split("=")[1] ?? "";
       const summary = getClientCaseSummary(db, localId);
       if (!summary) {
         console.error(`No profile found with ID: ${localId}`);
@@ -165,7 +166,7 @@ export async function lookupCommand(args: string[]): Promise<void> {
 
     // If exactly one result, show full summary
     if (results.length === 1) {
-      const summary = getClientCaseSummary(db, results[0].localId);
+      const summary = getClientCaseSummary(db, results[0]!.localId);
       if (summary) {
         printSummary(summary);
         return;

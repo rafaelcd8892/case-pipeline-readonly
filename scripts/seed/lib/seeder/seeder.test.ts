@@ -226,7 +226,7 @@ describe("Extracted queryable columns", () => {
       .all() as Array<{ board_key: string; next_date: string }>;
 
     expect(rows).toHaveLength(3);
-    expect(rows[0].next_date).toBe("2026-04-30");
+    expect(rows[0]!.next_date).toBe("2026-04-30");
   });
 
   test("attorney and profileLocalId are persisted", () => {
@@ -352,7 +352,7 @@ describe("FTS5 profile search", () => {
       .all("garcia") as Array<{ name: string }>;
 
     expect(byName).toHaveLength(1);
-    expect(byName[0].name).toBe("Maria Garcia");
+    expect(byName[0]!.name).toBe("Maria Garcia");
 
     // Search by email
     const byEmail = db
@@ -360,6 +360,6 @@ describe("FTS5 profile search", () => {
       .all("jose") as Array<{ name: string }>;
 
     expect(byEmail).toHaveLength(1);
-    expect(byEmail[0].name).toBe("Jose Martinez");
+    expect(byEmail[0]!.name).toBe("Jose Martinez");
   });
 });

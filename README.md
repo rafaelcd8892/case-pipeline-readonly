@@ -180,6 +180,7 @@ bun run analyze          # Shortcut for analyze command
 - [Architecture Guide](docs/CONFIG-ARCHITECTURE.md) - Detailed system design and patterns
 - [Monday.com Domain Map](docs/monday-domain-map.md) - Board relationships and case flow
 - [Board Relationship Map](docs/boards.md) - Visual map of all 18 tracked boards and their connections
+- [Client Updates Plan](docs/plan-client-updates.md) - Design plan for centralized updates/notes timeline
 
 ---
 

@@ -19,7 +19,7 @@ function App() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getClient(decodeURIComponent(match[1]));
+        const data = await getClient(decodeURIComponent(match[1]!));
         setClient(data);
       } catch (e) {
         setError((e as Error).message);
