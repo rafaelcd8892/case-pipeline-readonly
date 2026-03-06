@@ -54,6 +54,15 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+const KPI_EMPTY_MESSAGES: Record<string, string> = {
+  open_forms: "No open forms at this time",
+  pending_contracts: "All contracts are paid or closed",
+  paid_fee_ks: "No paid contracts awaiting action",
+  upcoming_deadlines: "Nothing due in the next 7 days",
+  upcoming_hearings: "No hearings scheduled this period",
+  alerts: "No active alerts — all clear",
+};
+
 function formatItemDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
@@ -179,7 +188,7 @@ function KpiCardComponent({
 
       <div className="kpi-card-body">
         {card.items.length === 0 ? (
-          <div className="kpi-empty">No items</div>
+          <div className="kpi-empty">{KPI_EMPTY_MESSAGES[card.key] ?? "No items"}</div>
         ) : (
           card.items.map((item) => (
             <KpiItemRow key={item.localId} item={item} />
