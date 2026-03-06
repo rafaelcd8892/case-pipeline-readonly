@@ -6,6 +6,8 @@ import type { Database } from "bun:sqlite";
 import {
   searchClients,
   listProfiles,
+  listProfilesFiltered,
+  getFilterOptions,
   getClientCaseSummary,
   getClientContracts,
   getClientBoardItems,
@@ -13,7 +15,11 @@ import {
   getClientUpdates,
   getClientRelationships,
   getDashboardKpis,
+  getAppointments,
+  searchByType,
+  getAlerts,
 } from "../query";
+import type { SearchType } from "../query";
 
 // =============================================================================
 // Helpers
@@ -42,6 +48,23 @@ export function handleListClients(req: Request, db: Database): Response {
   const offset = offsetParam
     ? Math.max(0, parseInt(offsetParam, 10) || 0)
     : 0;
+
+  // Check if any filters are present
+  const status = url.searchParams.get("status") ?? undefined;
+  const priority = url.searchParams.get("priority") ?? undefined;
+  const attorney = url.searchParams.get("attorney") ?? undefined;
+  const boardType = url.searchParams.get("board_type") ?? undefined;
+  const dateFrom = url.searchParams.get("date_from") ?? undefined;
+  const dateTo = url.searchParams.get("date_to") ?? undefined;
+
+  const hasFilters = status || priority || attorney || boardType || dateFrom || dateTo;
+
+  if (hasFilters) {
+    const result = listProfilesFiltered(db, {
+      limit, offset, status, priority, attorney, boardType, dateFrom, dateTo,
+    });
+    return json(result);
+  }
 
   const profiles = listProfiles(db, limit, offset);
   return json(profiles);
@@ -125,6 +148,17 @@ export function handleClientRelationships(req: Request, db: Database): Response 
   return json(relationships);
 }
 
+export function handleAppointments(req: Request, db: Database): Response {
+  const url = new URL(req.url);
+  const attorney = url.searchParams.get("attorney") ?? undefined;
+  const rangeParam = url.searchParams.get("range");
+  const range = rangeParam === "week" ? "week" : "day";
+  const date = url.searchParams.get("date") ?? undefined;
+
+  const result = getAppointments(db, { attorney, range, date });
+  return json(result);
+}
+
 export function handleDashboard(req: Request, db: Database): Response {
   const url = new URL(req.url);
   const rangeParam = url.searchParams.get("hearingRange");
@@ -132,6 +166,39 @@ export function handleDashboard(req: Request, db: Database): Response {
 
   const cards = getDashboardKpis(db, { range });
   return json(cards);
+}
+
+export function handleTypedSearch(req: Request, db: Database): Response {
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim();
+  const type = (url.searchParams.get("type") ?? "profiles") as SearchType;
+
+  if (!q) {
+    return error("Missing required query parameter: q", 400);
+  }
+
+  try {
+    if (type === "profiles") {
+      const results = searchClients(db, q);
+      return json(results);
+    }
+    const results = searchByType(db, q, type);
+    return json(results);
+  } catch {
+    return error("Invalid search query", 400);
+  }
+}
+
+export function handleAlerts(req: Request, db: Database): Response {
+  const url = new URL(req.url);
+  const attorney = url.searchParams.get("attorney") ?? undefined;
+  const result = getAlerts(db, { attorney });
+  return json(result);
+}
+
+export function handleFilterOptions(_req: Request, db: Database): Response {
+  const options = getFilterOptions(db);
+  return json(options);
 }
 
 // =============================================================================

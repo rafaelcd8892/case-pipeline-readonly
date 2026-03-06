@@ -38,7 +38,6 @@ const NAV_ITEMS: NavItem[] = [
     id: "appointments",
     label: "Appointments",
     path: "/appointments",
-    disabled: true,
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="3" y="4" width="14" height="13" rx="2" />
@@ -63,7 +62,7 @@ const NAV_ITEMS: NavItem[] = [
     id: "alerts",
     label: "Alerts",
     path: "/alerts",
-    disabled: true,
+    disabled: false,
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M10 2L2 18h16L10 2z" />

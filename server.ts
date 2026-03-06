@@ -7,6 +7,8 @@ import { validateSchema } from "./scripts/seed/lib/db/schema";
 import {
   handleListClients,
   handleSearch,
+  handleTypedSearch,
+  handleFilterOptions,
   handleClientDetail,
   handleClientContracts,
   handleClientBoardItems,
@@ -14,6 +16,8 @@ import {
   handleClientUpdates,
   handleClientRelationships,
   handleDashboard,
+  handleAppointments,
+  handleAlerts,
 } from "./lib/api/handlers";
 import homepage from "./web/index.html";
 
@@ -38,6 +42,18 @@ const server = Bun.serve({
 
     "/api/dashboard": {
       GET: (req) => handleDashboard(req, db),
+    },
+    "/api/appointments": {
+      GET: (req) => handleAppointments(req, db),
+    },
+    "/api/alerts": {
+      GET: (req) => handleAlerts(req, db),
+    },
+    "/api/search": {
+      GET: (req) => handleTypedSearch(req, db),
+    },
+    "/api/filter-options": {
+      GET: (req) => handleFilterOptions(req, db),
     },
     "/api/clients": {
       GET: (req) => handleListClients(req, db),

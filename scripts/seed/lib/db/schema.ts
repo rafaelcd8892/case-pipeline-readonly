@@ -4,7 +4,7 @@
 
 import type { Database } from "bun:sqlite";
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = `
 -- =============================================================================
@@ -125,27 +125,27 @@ CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER PRIMARY KEY
 );
 
--- FTS5 for client search
+-- FTS5 for client search (name, email, phone, address)
 CREATE VIRTUAL TABLE IF NOT EXISTS profiles_fts USING fts5(
-    name, email, phone,
+    name, email, phone, address,
     content='profiles',
     content_rowid='id'
 );
 
 -- Triggers to keep FTS in sync
 CREATE TRIGGER IF NOT EXISTS profiles_ai AFTER INSERT ON profiles BEGIN
-    INSERT INTO profiles_fts(rowid, name, email, phone)
-    VALUES (new.id, new.name, new.email, new.phone);
+    INSERT INTO profiles_fts(rowid, name, email, phone, address)
+    VALUES (new.id, new.name, new.email, new.phone, new.address);
 END;
 CREATE TRIGGER IF NOT EXISTS profiles_ad AFTER DELETE ON profiles BEGIN
-    INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone)
-    VALUES ('delete', old.id, old.name, old.email, old.phone);
+    INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone, address)
+    VALUES ('delete', old.id, old.name, old.email, old.phone, old.address);
 END;
 CREATE TRIGGER IF NOT EXISTS profiles_au AFTER UPDATE ON profiles BEGIN
-    INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone)
-    VALUES ('delete', old.id, old.name, old.email, old.phone);
-    INSERT INTO profiles_fts(rowid, name, email, phone)
-    VALUES (new.id, new.name, new.email, new.phone);
+    INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone, address)
+    VALUES ('delete', old.id, old.name, old.email, old.phone, old.address);
+    INSERT INTO profiles_fts(rowid, name, email, phone, address)
+    VALUES (new.id, new.name, new.email, new.phone, new.address);
 END;
 
 -- Indices for performance
@@ -293,6 +293,40 @@ export function initializeSchema(db: Database): void {
           CREATE INDEX IF NOT EXISTS idx_updates_created ON client_updates(created_at_source);
         `);
       }
+    }
+
+    // Migration v4 → v5: add address to FTS5 index
+    if (fromVersion < 5) {
+      db.exec(`
+        DROP TRIGGER IF EXISTS profiles_ai;
+        DROP TRIGGER IF EXISTS profiles_ad;
+        DROP TRIGGER IF EXISTS profiles_au;
+        DROP TABLE IF EXISTS profiles_fts;
+
+        CREATE VIRTUAL TABLE profiles_fts USING fts5(
+          name, email, phone, address,
+          content='profiles',
+          content_rowid='id'
+        );
+
+        INSERT INTO profiles_fts(rowid, name, email, phone, address)
+          SELECT id, name, email, phone, address FROM profiles;
+
+        CREATE TRIGGER profiles_ai AFTER INSERT ON profiles BEGIN
+          INSERT INTO profiles_fts(rowid, name, email, phone, address)
+          VALUES (new.id, new.name, new.email, new.phone, new.address);
+        END;
+        CREATE TRIGGER profiles_ad AFTER DELETE ON profiles BEGIN
+          INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone, address)
+          VALUES ('delete', old.id, old.name, old.email, old.phone, old.address);
+        END;
+        CREATE TRIGGER profiles_au AFTER UPDATE ON profiles BEGIN
+          INSERT INTO profiles_fts(profiles_fts, rowid, name, email, phone, address)
+          VALUES ('delete', old.id, old.name, old.email, old.phone, old.address);
+          INSERT INTO profiles_fts(rowid, name, email, phone, address)
+          VALUES (new.id, new.name, new.email, new.phone, new.address);
+        END;
+      `);
     }
 
     db.exec(`UPDATE schema_version SET version = ${SCHEMA_VERSION}`);

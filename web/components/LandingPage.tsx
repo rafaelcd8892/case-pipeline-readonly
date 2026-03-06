@@ -46,6 +46,12 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
       <path d="M12 8v4l3 3" />
     </svg>
   ),
+  alerts: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 3L2 21h20L12 3z" />
+      <path d="M12 10v4M12 17v1" />
+    </svg>
+  ),
 };
 
 function formatItemDate(dateStr: string | null): string {
@@ -80,6 +86,38 @@ function KpiItemRow({ item }: { item: KpiItem }) {
   );
 }
 
+function getKpiFilterUrl(key: string, hearingRange?: string): string | null {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+
+  switch (key) {
+    case "open_forms":
+      return "/clients?board_type=_cd_open_forms";
+    case "pending_contracts":
+      return "/clients?status=pending_contracts";
+    case "paid_fee_ks":
+      return "/clients?status=paid_fee_ks";
+    case "upcoming_deadlines": {
+      const weekOut = new Date(today);
+      weekOut.setDate(weekOut.getDate() + 7);
+      return `/clients?date_from=${todayStr}&date_to=${weekOut.toISOString().split("T")[0]}`;
+    }
+    case "upcoming_hearings": {
+      const end = new Date(today);
+      if (hearingRange === "month") {
+        end.setMonth(end.getMonth() + 1);
+      } else {
+        end.setDate(end.getDate() + 7);
+      }
+      return `/clients?board_type=court_cases&date_from=${todayStr}&date_to=${end.toISOString().split("T")[0]}`;
+    }
+    case "alerts":
+      return "/alerts";
+    default:
+      return null;
+  }
+}
+
 function KpiCardComponent({
   card,
   index,
@@ -91,6 +129,8 @@ function KpiCardComponent({
   onHearingToggle?: () => void;
   hearingRange?: string;
 }) {
+  const filterUrl = getKpiFilterUrl(card.key, hearingRange);
+
   return (
     <div className={`kpi-card card card-elevated animate-in animate-in-delay-${index + 1}`}>
       <div className="kpi-card-header">
@@ -99,7 +139,24 @@ function KpiCardComponent({
         </div>
         <div className="kpi-card-title">
           <span className="kpi-card-label">{card.label}</span>
-          <span className="kpi-card-count">{card.count}</span>
+          {filterUrl && card.count > 0 ? (
+            <Link
+              href={filterUrl}
+              className="kpi-card-count"
+              style={{
+                cursor: "pointer",
+                textDecoration: "none",
+                transition: "opacity 0.15s",
+              }}
+              title="View all matching clients"
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              {card.count}
+            </Link>
+          ) : (
+            <span className="kpi-card-count">{card.count}</span>
+          )}
         </div>
       </div>
 

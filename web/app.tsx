@@ -1,26 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { SearchBar } from "./components/SearchBar";
-import { SearchResults } from "./components/SearchResults";
 import { ClientView } from "./components/ClientView";
 import { Sidebar } from "./components/Sidebar";
 import { LandingPage } from "./components/LandingPage";
+import { AppointmentsPage } from "./components/AppointmentsPage";
+import { ClientsPage } from "./components/ClientsPage";
+import { AlertsPage } from "./components/AlertsPage";
 import type { TabId } from "./components/ClientTabs";
 import { matchRoute, navigate } from "./router";
-import { getClient, listClients } from "./api";
-import type { ClientCaseSummary, SearchResult } from "./api";
-
-type View = "search" | "browse";
+import { getClient } from "./api";
+import type { ClientCaseSummary } from "./api";
 
 function App() {
-  const [view, setView] = useState<View>("search");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [allProfiles, setAllProfiles] = useState<SearchResult[]>([]);
   const [client, setClient] = useState<ClientCaseSummary | null>(null);
   const [initialTab, setInitialTab] = useState<TabId>("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pathname, setPathname] = useState(window.location.pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("sidebar-collapsed") === "true";
@@ -29,16 +26,20 @@ function App() {
     }
   });
   const currentClientId = useRef<string | null>(null);
+  const clientRef = useRef<ClientCaseSummary | null>(null);
+  clientRef.current = client;
 
   const loadFromRoute = useCallback(async () => {
-    const route = matchRoute(window.location.pathname);
+    const currentPath = window.location.pathname;
+    setPathname(currentPath);
+    const route = matchRoute(currentPath);
 
     if (route.page === "client-detail") {
       const localId = route.params.id!;
       const tab = (route.params.tab as TabId) ?? "overview";
 
       // Same client, just switching tabs
-      if (currentClientId.current === localId && client) {
+      if (currentClientId.current === localId && clientRef.current) {
         setInitialTab(tab);
         return;
       }
@@ -59,7 +60,7 @@ function App() {
       setClient(null);
       currentClientId.current = null;
     }
-  }, [client]);
+  }, []);
 
   useEffect(() => {
     loadFromRoute();
@@ -74,7 +75,6 @@ function App() {
         setSidebarCollapsed(e.newValue === "true");
       }
     };
-    // Also listen to our own sidebar changes via a MutationObserver on the sidebar width
     const interval = setInterval(() => {
       try {
         const val = localStorage.getItem("sidebar-collapsed") === "true";
@@ -88,36 +88,12 @@ function App() {
     };
   }, [sidebarCollapsed]);
 
-  const handleSelect = (localId: string) => {
-    navigate(`/clients/${encodeURIComponent(localId)}`);
-  };
-
   const handleBack = () => {
     navigate("/clients");
   };
 
-  const handleBrowse = async () => {
-    if (view === "browse") {
-      setView("search");
-      return;
-    }
-    setView("browse");
-    if (allProfiles.length === 0) {
-      setLoading(true);
-      try {
-        const profiles = await listClients();
-        setAllProfiles(profiles);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const route = matchRoute(window.location.pathname);
-  const showingList = !client && !loading;
-  const isClientPage = route.page === "clients" || route.page === "client-detail";
+  const route = matchRoute(pathname);
+  const isClientDetail = route.page === "client-detail";
   const sidebarWidth = sidebarCollapsed ? 60 : 220;
 
   return (
@@ -159,30 +135,6 @@ function App() {
                 Back
               </button>
             ) : null}
-
-            {!client && isClientPage && view === "search" && (
-              <div className="flex-1 ml-4">
-                <SearchBar onResults={setResults} />
-              </div>
-            )}
-
-            {!client && isClientPage && (
-              <button
-                onClick={handleBrowse}
-                className="px-4 py-1.5 text-sm rounded-lg whitespace-nowrap transition-all"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontWeight: 500,
-                  border: view === "browse"
-                    ? "1px solid var(--color-amber)"
-                    : "1px solid rgba(255,255,255,0.15)",
-                  color: view === "browse" ? "var(--color-amber)" : "rgba(255,255,255,0.6)",
-                  backgroundColor: view === "browse" ? "rgba(180,83,9,0.1)" : "transparent",
-                }}
-              >
-                {view === "browse" ? "Back to Search" : "Browse All"}
-              </button>
-            )}
           </div>
         </header>
 
@@ -231,61 +183,17 @@ function App() {
           {/* Landing page — KPI dashboard */}
           {route.page === "landing" && !loading && <LandingPage />}
 
-          {/* Client list page */}
-          {isClientPage && showingList && view === "search" && results.length === 0 && (
-            <div className="py-24 flex flex-col items-center gap-4 animate-in">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: "var(--color-amber-light)" }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber)" strokeWidth="1.5">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.35-4.35" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p
-                  className="text-lg mb-1"
-                  style={{ fontFamily: "var(--font-display)", color: "var(--color-ink)" }}
-                >
-                  Search for a client
-                </p>
-                <p className="text-sm" style={{ color: "var(--color-ink-faint)" }}>
-                  Type a name, email, or phone number to view their 360 case summary.
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Appointments page */}
+          {route.page === "appointments" && !loading && <AppointmentsPage />}
 
-          {isClientPage && showingList && view === "search" && (
-            <SearchResults results={results} onSelect={handleSelect} />
-          )}
+          {/* Alerts page */}
+          {route.page === "alerts" && !loading && <AlertsPage />}
 
-          {isClientPage && showingList && view === "browse" && (
-            <div className="animate-in">
-              <div className="section-divider mb-5">
-                <span
-                  className="text-xs font-semibold uppercase tracking-widest"
-                  style={{ color: "var(--color-ink-faint)", fontFamily: "var(--font-body)" }}
-                >
-                  All Profiles
-                </span>
-                <span
-                  className="text-xs font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: "var(--color-amber-light)",
-                    color: "var(--color-amber)",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  {allProfiles.length}
-                </span>
-              </div>
-              <SearchResults results={allProfiles} onSelect={handleSelect} />
-            </div>
-          )}
+          {/* Clients page — search + filtered browse */}
+          {route.page === "clients" && !loading && !client && <ClientsPage />}
 
-          {client && !loading && <ClientView data={client} initialTab={initialTab} />}
+          {/* Client 360 detail view */}
+          {isClientDetail && client && !loading && <ClientView data={client} initialTab={initialTab} />}
         </main>
       </div>
     </div>

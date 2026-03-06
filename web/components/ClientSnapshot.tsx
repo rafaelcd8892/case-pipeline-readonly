@@ -118,7 +118,7 @@ export function ClientSnapshot({ data }: Props) {
   return (
     <div className="snapshot-grid animate-in animate-in-delay-1">
       {/* Card 1: Case Status */}
-      <div className="snapshot-card" onClick={() => togglePopover("status")}>
+      <div className={`snapshot-card${activePopover === "status" ? " popover-open" : ""}`} onClick={() => togglePopover("status")}>
         <div className="flex items-center justify-between mb-2">
           <span className="snapshot-label">Case Status</span>
           <button
@@ -197,7 +197,7 @@ export function ClientSnapshot({ data }: Props) {
       </div>
 
       {/* Card 2: Next Deadline */}
-      <div className="snapshot-card" onClick={() => togglePopover("deadline")}>
+      <div className={`snapshot-card${activePopover === "deadline" ? " popover-open" : ""}`} onClick={() => togglePopover("deadline")}>
         <span className="snapshot-label">Next Deadline</span>
         {nextDeadline ? (
           <div>
@@ -261,7 +261,7 @@ export function ClientSnapshot({ data }: Props) {
       </div>
 
       {/* Card 3: Case Type / Relief */}
-      <div className="snapshot-card" onClick={() => togglePopover("relief")}>
+      <div className={`snapshot-card${activePopover === "relief" ? " popover-open" : ""}`} onClick={() => togglePopover("relief")}>
         <span className="snapshot-label">Case Type / Relief</span>
         <div className="snapshot-value">
           {reliefTypes.length > 0 ? (
@@ -313,7 +313,7 @@ export function ClientSnapshot({ data }: Props) {
       </div>
 
       {/* Card 4: Last Action */}
-      <div className="snapshot-card" onClick={() => togglePopover("action")}>
+      <div className={`snapshot-card${activePopover === "action" ? " popover-open" : ""}`} onClick={() => togglePopover("action")}>
         <span className="snapshot-label">Last Action</span>
         {lastAction ? (
           <div>

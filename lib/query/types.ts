@@ -60,6 +60,34 @@ export interface SearchResult {
   name: string;
   email: string | null;
   phone: string | null;
+  address: string | null;
+}
+
+// =============================================================================
+// Typed Search Types (cross-entity search)
+// =============================================================================
+
+export type SearchType =
+  | "profiles"
+  | "contracts"
+  | "court_cases"
+  | "open_forms"
+  | "motions"
+  | "appeals"
+  | "foias"
+  | "litigation"
+  | "i918bs"
+  | "rfes";
+
+export interface TypedSearchResult {
+  type: SearchType;
+  localId: string;
+  name: string;
+  status: string | null;
+  clientName: string | null;
+  clientLocalId: string | null;
+  boardKey: string | null;
+  caseType: string | null;
 }
 
 // Contract statuses considered "closed"
@@ -104,6 +132,49 @@ export interface KpiCard {
   label: string;
   count: number;
   items: KpiItem[];
+}
+
+// Board item statuses considered closed (not alertable)
+export const CLOSED_BOARD_ITEM_STATUSES = new Set([
+  "Done",
+  "Completed",
+  "Closed",
+  "Cancelled",
+  "Withdrawn",
+]);
+
+// =============================================================================
+// Alert Types
+// =============================================================================
+
+export type AlertSeverity = "critical" | "warning" | "info";
+
+export interface AlertItem {
+  localId: string;
+  name: string;
+  boardKey: string | null;
+  status: string | null;
+  clientName: string | null;
+  clientLocalId: string | null;
+  attorney: string | null;
+  date: string | null;
+  daysOverdue?: number;
+  daysSinceUpdate?: number;
+  caseType?: string;
+}
+
+export interface AlertGroup {
+  severity: AlertSeverity;
+  label: string;
+  description: string;
+  count: number;
+  items: AlertItem[];
+}
+
+export interface AlertsResult {
+  groups: AlertGroup[];
+  totalCount: number;
+  attorneys: string[];
 }
 
 // Board display names for readable output

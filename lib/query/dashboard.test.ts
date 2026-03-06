@@ -82,16 +82,17 @@ function insertBoardItem(
 // =============================================================================
 
 describe("getDashboardKpis", () => {
-  test("returns 5 KPI cards", () => {
+  test("returns 6 KPI cards", () => {
     const db = freshDb();
     const cards = getDashboardKpis(db);
-    expect(cards.length).toBe(5);
+    expect(cards.length).toBe(6);
     expect(cards.map((c) => c.key)).toEqual([
       "open_forms",
       "pending_contracts",
       "paid_fee_ks",
       "upcoming_deadlines",
       "upcoming_hearings",
+      "alerts",
     ]);
     db.close();
   });

@@ -5,6 +5,7 @@
 import type { Database } from "bun:sqlite";
 import type { KpiCard, KpiItem } from "./types";
 import { CLOSED_CONTRACT_STATUSES, PAID_CONTRACT_STATUSES } from "./types";
+import { getAlertsTotalCount } from "./alerts";
 
 interface HearingOptions {
   range?: "7d" | "month";
@@ -26,6 +27,7 @@ export function getDashboardKpis(
     getPaidFeeKs(db),
     getUpcomingDeadlines(db, todayStr),
     getUpcomingHearings(db, todayStr, opts.range ?? "7d"),
+    getAlertsCard(db),
   ];
 }
 
@@ -221,6 +223,11 @@ function getUpcomingHearings(
     count: countRow.cnt,
     items,
   };
+}
+
+function getAlertsCard(db: Database): KpiCard {
+  const count = getAlertsTotalCount(db);
+  return { key: "alerts", label: "Alerts", count, items: [] };
 }
 
 // =============================================================================
