@@ -119,3 +119,69 @@ This avoids over-engineering a custom FTS tokenizer while covering the real use 
 ### Caching Strategy
 
 **Decision**: Cache folder listings for ~5 minutes. Documents don't change frequently enough to justify real-time calls, and this keeps Graph API usage low.
+
+---
+
+## 2026-03-07 — Monday.com Groups as First-Class Data (Schema v6)
+
+### Why Groups Matter
+
+**Context**: In Monday.com, every board is divided into **groups** — and the group an item sits in carries critical semantic meaning. For example:
+- **Profiles board**: "Active Clients" vs "Non-clients" vs "Closed clients" vs "Clinic Profiles (non clients)" — determines whether someone is actually a client.
+- **Fee Ks**: group determines contract lifecycle stage (the `status` column is a secondary signal).
+- **Open Forms**: "Open Forms" vs "Court Forms" vs "Filed" vs "Closed" vs "Denied" — determines form lifecycle.
+- **Court Cases**: "Court Case" (active) vs "Inactive Court Cases" vs "Granted" vs "Ordered Removed/VD" vs "Withdrew".
+- **Appointments**: "Today's consults" vs "Upcoming" vs "Past Consults" vs "Hire" vs "No Hire".
+- **Motions**: "Motions to be sent" vs "Awaiting on decision" vs "Granted" vs "Denied".
+- **FOIAs**: "Pending FOIAs" vs "Filed".
+- **I-918Bs**: "To Be Requested" vs "Pending I918 B's" vs "Signed I918 B's" vs "Hired for U-visa" etc.
+
+Without groups, the dashboard cannot reliably answer: "Is this person a client?", "Is this case active or closed?", "Is this form filed or still open?"
+
+### Decision
+
+1. **`group_title` column already exists** on `board_items` (since schema v2) and the seeder already populates it. Added a composite index `(board_key, group_title)` to make group-filtered queries fast.
+
+2. **Added `group_title` to `profiles` table** (schema v6 migration). Profiles now carry their Monday.com board group assignment ("Active Clients", "Non-clients", etc.). This enables filtering clients vs non-clients without guessing from contract/activity data.
+
+3. **Seeder assigns profile groups** with weighted distribution: 65% Active Clients, 20% Non-clients, 10% Closed, 5% Clinic Profiles.
+
+4. **Group semantics are board-specific** — the meaning of groups varies by board. The query layer should use group-aware logic per board rather than a generic group filter.
+
+### Group Definitions by Board
+
+| Board | Groups | Semantic |
+|-------|--------|----------|
+| profiles | Active Clients, Non-clients, Closed clients, Clinic Profiles | Client classification |
+| fee_ks | (uses status column primarily) | Contract lifecycle |
+| _cd_open_forms | Open Forms, Court Forms, Interview, Filed, Filed PIPS, Closed, Denied | Form lifecycle |
+| court_cases | Court Case, Inactive Court Cases, Ordered Removed/VD, Withdrew, Granted | Case outcome |
+| motions | Motions to be sent, Awaiting on decision, Granted, Denied | Motion lifecycle |
+| appeals | Appeals | (single group) |
+| foias | Pending FOIAs, Filed | FOIA lifecycle |
+| _lt_i918b_s | To Be Requested, Pending I918 B's, Signed I918 B's, Agency did not sign, etc. | I-918B lifecycle |
+| address_changes | Address Changes, Payment Pending, EAD Extension Letters, Completed | Change lifecycle |
+| rfes_all | USCIS RFEs, NVC RFEs, Sent Out, No Action Needed/Completed/Denied | RFE lifecycle |
+| _na_originals_cards_notices | Cards, Green Notices, CYF Appts, Sent To Client | Document type |
+| appointments_* | Today's consults, Upcoming, Past Consults, No Hire, Hire | Appointment lifecycle |
+| _fa_jail_intakes | Jail Intakes, Scheduled, NEED TO BE SCHEDULED | Intake lifecycle |
+
+### Weighted Group Distributions in Seeder
+
+**Context**: The initial groups implementation hardcoded a single group per board generator (e.g., all court cases → "Court Case", all motions → "Motions to be sent"). This made the seeded data unrealistic — the dashboard couldn't exercise group-based filtering because every item was in the same group.
+
+**Decision**: Updated all board generators to use weighted random group assignment matching production distributions. Each board now distributes items across all its real groups:
+- **Court Cases**: 55% Court Case, 15% Inactive, 12% Granted, 10% Ordered Removed/VD, 8% Withdrew
+- **Motions**: 35% To be sent, 30% Awaiting, 20% Granted, 15% Denied
+- **FOIAs**: 60% Pending, 40% Filed
+- **I-918Bs**: 30% Pending, 20% To Be Requested, 15% Signed, plus smaller percentages for resolved states
+- **Appointments**: 35% Past Consults, 25% Upcoming, 15% Hire, 15% No Hire, 10% Today's consults
+- And similarly for address_changes, originals, RFEs, jail intakes
+
+**Why**: When Monday.com sync is added, `item.group.title` populates the same `group_title` column — no code changes needed. The Monday API provides both board-level groups (`boards { groups { id title } }`) and per-item group membership (`items { group { id title } }`), so new groups are auto-discovered during sync.
+
+### Next Steps
+
+- Use `profiles.group_title` to filter "real clients" vs consultees in search and browse views
+- Use `board_items.group_title` to determine active vs closed/resolved items per board
+- Expose group as a filter option in the UI where it adds value (e.g., Open Forms: show "Filed" separately from "Open")

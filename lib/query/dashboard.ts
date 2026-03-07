@@ -5,7 +5,7 @@
 import type { Database } from "bun:sqlite";
 import type { KpiCard, KpiItem } from "./types";
 import { CLOSED_CONTRACT_STATUSES, PAID_CONTRACT_STATUSES } from "./types";
-import { getAlertsTotalCount } from "./alerts";
+import { getAlerts } from "./alerts";
 
 interface HearingOptions {
   range?: "7d" | "month";
@@ -226,8 +226,27 @@ function getUpcomingHearings(
 }
 
 function getAlertsCard(db: Database): KpiCard {
-  const count = getAlertsTotalCount(db);
-  return { key: "alerts", label: "Alerts", count, items: [] };
+  const { groups, totalCount } = getAlerts(db);
+
+  // Flatten top alert items across groups, prioritizing critical > warning > info
+  const items: KpiItem[] = [];
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (items.length >= 5) break;
+      items.push({
+        localId: item.localId,
+        name: item.name,
+        date: item.date ?? null,
+        clientName: item.clientName ?? null,
+        clientLocalId: item.clientLocalId ?? null,
+        boardKey: item.boardKey ?? null,
+        status: item.status ?? null,
+      });
+    }
+    if (items.length >= 5) break;
+  }
+
+  return { key: "alerts", label: "Alerts", count: totalCount, items };
 }
 
 // =============================================================================

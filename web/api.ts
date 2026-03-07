@@ -116,7 +116,7 @@ export async function fetchClientRelationships(localId: string): Promise<Relatio
 
 export async function fetchAppointments(
   attorney?: string,
-  range?: "day" | "week",
+  range?: "day" | "week" | "upcoming" | "all",
   date?: string,
 ): Promise<AppointmentsResult> {
   const params = new URLSearchParams();

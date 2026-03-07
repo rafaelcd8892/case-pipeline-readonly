@@ -5,7 +5,6 @@
 import type { Database } from "bun:sqlite";
 import {
   searchClients,
-  listProfiles,
   listProfilesFiltered,
   getFilterOptions,
   getClientCaseSummary,
@@ -57,17 +56,10 @@ export function handleListClients(req: Request, db: Database): Response {
   const dateFrom = url.searchParams.get("date_from") ?? undefined;
   const dateTo = url.searchParams.get("date_to") ?? undefined;
 
-  const hasFilters = status || priority || attorney || boardType || dateFrom || dateTo;
-
-  if (hasFilters) {
-    const result = listProfilesFiltered(db, {
-      limit, offset, status, priority, attorney, boardType, dateFrom, dateTo,
-    });
-    return json(result);
-  }
-
-  const profiles = listProfiles(db, limit, offset);
-  return json(profiles);
+  const result = listProfilesFiltered(db, {
+    limit, offset, status, priority, attorney, boardType, dateFrom, dateTo,
+  });
+  return json(result);
 }
 
 export function handleSearch(req: Request, db: Database): Response {
@@ -152,7 +144,8 @@ export function handleAppointments(req: Request, db: Database): Response {
   const url = new URL(req.url);
   const attorney = url.searchParams.get("attorney") ?? undefined;
   const rangeParam = url.searchParams.get("range");
-  const range = rangeParam === "week" ? "week" : "day";
+  const validRanges = ["day", "week", "upcoming", "all"] as const;
+  const range = validRanges.includes(rangeParam as any) ? (rangeParam as typeof validRanges[number]) : "day";
   const date = url.searchParams.get("date") ?? undefined;
 
   const result = getAppointments(db, { attorney, range, date });

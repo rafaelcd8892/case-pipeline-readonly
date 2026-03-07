@@ -92,6 +92,7 @@ export function getClientProfile(db: Database, localId: string): ProfileSummary 
         email,
         phone,
         priority,
+        group_title AS groupTitle,
         address
       FROM profiles
       WHERE local_id = ?
@@ -125,6 +126,7 @@ export function getClientByName(db: Database, name: string): ProfileSummary | nu
         email,
         phone,
         priority,
+        group_title AS groupTitle,
         address
       FROM profiles
       WHERE name = ?

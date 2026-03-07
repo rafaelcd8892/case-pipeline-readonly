@@ -8,6 +8,7 @@ export interface ProfileSummary {
   email: string | null;
   phone: string | null;
   priority: string | null;
+  groupTitle: string | null;
   address: string | null;
 }
 

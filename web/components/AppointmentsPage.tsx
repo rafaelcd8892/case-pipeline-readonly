@@ -18,7 +18,7 @@ import { BOARD_DISPLAY_NAMES } from "../../lib/query/types";
 import { clientPath } from "../router";
 
 type DetailLevel = "minimal" | "snapshot" | "full";
-type DateRange = "day" | "week";
+type DateRange = "day" | "week" | "upcoming" | "all";
 
 const DETAIL_LABELS: { id: DetailLevel; label: string }[] = [
   { id: "minimal", label: "Minimal" },
@@ -29,6 +29,8 @@ const DETAIL_LABELS: { id: DetailLevel; label: string }[] = [
 const RANGE_LABELS: { id: DateRange; label: string }[] = [
   { id: "day", label: "Today" },
   { id: "week", label: "This Week" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "all", label: "All" },
 ];
 
 function formatDate(dateStr: string | null): string {
@@ -78,8 +80,9 @@ function getUrlParam(key: string): string | null {
 
 function syncUrlParams(params: Record<string, string>) {
   const url = new URL(window.location.href);
+  const defaults: Record<string, string> = { attorney: "all", range: "day" };
   for (const [k, v] of Object.entries(params)) {
-    if (v && v !== "all" && v !== "day") {
+    if (v && v !== defaults[k]) {
       url.searchParams.set(k, v);
     } else {
       url.searchParams.delete(k);
@@ -464,7 +467,7 @@ export function AppointmentsPage() {
           Appointments
         </h1>
         <p className="text-sm" style={{ color: "var(--color-ink-faint)", fontFamily: "var(--font-body)" }}>
-          {range === "day" ? "Today's" : "This week's"} schedule
+          {range === "day" ? "Today's" : range === "week" ? "This week's" : range === "upcoming" ? "Upcoming" : "All"} schedule
           {attorney !== "all" ? ` for ${attorney}` : ""}.
         </p>
       </div>
@@ -606,8 +609,8 @@ export function AppointmentsPage() {
             </p>
             <p className="text-sm" style={{ color: "var(--color-ink-faint)", fontFamily: "var(--font-body)" }}>
               {attorney !== "all"
-                ? `No appointments for ${attorney} ${range === "day" ? "today" : "this week"}.`
-                : `No appointments ${range === "day" ? "today" : "this week"}.`}
+                ? `No appointments for ${attorney} ${range === "day" ? "today" : range === "week" ? "this week" : ""}.`
+                : `No appointments ${range === "day" ? "today" : range === "week" ? "this week" : "found"}.`}
             </p>
           </div>
         </div>
@@ -666,7 +669,7 @@ export function AppointmentsPage() {
         >
           {data.entries.length} appointment{data.entries.length !== 1 ? "s" : ""}
           {attorney !== "all" ? ` for ${attorney}` : ""}
-          {range === "day" ? " today" : " this week"}
+          {range === "day" ? " today" : range === "week" ? " this week" : range === "upcoming" ? " upcoming" : ""}
         </div>
       )}
     </div>

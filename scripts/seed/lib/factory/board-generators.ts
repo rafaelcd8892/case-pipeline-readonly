@@ -42,6 +42,68 @@ import {
 } from "../constants";
 
 // =============================================================================
+// Weighted group distributions per board (derived from production snapshot)
+// =============================================================================
+
+const COURT_CASE_GROUP_WEIGHTS = [
+  { value: "Court Case", weight: 55 },
+  { value: "Inactive Court Cases", weight: 15 },
+  { value: "Granted", weight: 12 },
+  { value: "Ordered Removed/VD", weight: 10 },
+  { value: "Withdrew", weight: 8 },
+];
+
+const MOTION_GROUP_WEIGHTS = [
+  { value: "Motions to be sent", weight: 35 },
+  { value: "Awaiting on decision", weight: 30 },
+  { value: "Granted", weight: 20 },
+  { value: "Denied", weight: 15 },
+];
+
+const FOIA_GROUP_WEIGHTS = [
+  { value: "Pending FOIAs", weight: 60 },
+  { value: "Filed", weight: 40 },
+];
+
+const I918B_GROUP_WEIGHTS = [
+  { value: "Pending I918 B's", weight: 30 },
+  { value: "To Be Requested", weight: 20 },
+  { value: "Signed I918 B's", weight: 15 },
+  { value: "Agency did not sign", weight: 10 },
+  { value: "Did not hire", weight: 8 },
+  { value: "Hired for U-visa", weight: 7 },
+  { value: "Extension Letters", weight: 5 },
+  { value: "Expired", weight: 5 },
+];
+
+const ADDRESS_CHANGE_GROUP_WEIGHTS = [
+  { value: "Address Changes", weight: 40 },
+  { value: "Address Change (payment Pending)", weight: 15 },
+  { value: "EAD Extension Letters", weight: 15 },
+  { value: "Completed Changes of Address", weight: 30 },
+];
+
+const ORIGINALS_GROUP_WEIGHTS = [
+  { value: "Cards", weight: 30 },
+  { value: "Green Notices", weight: 25 },
+  { value: "CYF Appts", weight: 10 },
+  { value: "Sent To Client", weight: 35 },
+];
+
+const RFE_GROUP_WEIGHTS = [
+  { value: "USCIS RFEs", weight: 40 },
+  { value: "NVC RFEs", weight: 15 },
+  { value: "Sent Out", weight: 25 },
+  { value: "No Action Needed/ Completed/ Denied", weight: 20 },
+];
+
+const JAIL_INTAKE_GROUP_WEIGHTS = [
+  { value: "Jail Intakes", weight: 40 },
+  { value: "Scheduled", weight: 35 },
+  { value: "NEED TO BE SCHEDULED", weight: 25 },
+];
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -72,7 +134,7 @@ export function generateCourtCaseData(
 
   return {
     name: `${attorney} - ${profile.name} [${aNumber}]`,
-    group: "Court Case",
+    group: faker.helpers.weightedArrayElement(COURT_CASE_GROUP_WEIGHTS),
     attorney,
     overrides: {
       hearing_type: { label: hearingType },
@@ -127,7 +189,7 @@ export function generateMotionData(
 
   return {
     name: `${profile.name} - ${motionTag}`,
-    group: "Motions to be sent",
+    group: faker.helpers.weightedArrayElement(MOTION_GROUP_WEIGHTS),
     overrides: {
       // Status (project_status)
       status: { label: status },
@@ -176,7 +238,7 @@ export function generateFoiaData(
 
   return {
     name: `${profile.name} - FOIA (${foiaType})`,
-    group: "Pending FOIAs",
+    group: faker.helpers.weightedArrayElement(FOIA_GROUP_WEIGHTS),
     overrides: {
       status: { label: status },
       type: { labels: [foiaType] },
@@ -220,7 +282,7 @@ export function generateI918BData(
 
   return {
     name: `${profile.name} - I918B`,
-    group: "Pending I918 B's",
+    group: faker.helpers.weightedArrayElement(I918B_GROUP_WEIGHTS),
     overrides: {
       status: { label: status },
       hire_date_for_i918b_request: { date: generateDate(-60, -1) },
@@ -244,7 +306,7 @@ export function generateAddressChangeData(
 
   return {
     name: `${profile.name} - Address Change`,
-    group: "Address Changes",
+    group: faker.helpers.weightedArrayElement(ADDRESS_CHANGE_GROUP_WEIGHTS),
     overrides: {
       status: { label: status },
       court_or_uscis: { label: courtOrUscis },
@@ -268,7 +330,7 @@ export function generateOriginalData(
 
   return {
     name: `${profile.name} - ${whatWeHave}`,
-    group: "Sent To Client",
+    group: faker.helpers.weightedArrayElement(ORIGINALS_GROUP_WEIGHTS),
     overrides: {
       status: { label: status },
       receipt_type: { label: receiptType },
@@ -291,7 +353,7 @@ export function generateRfeData(
 
   return {
     name: `${attorney} - ${rfeType}: ${profile.name}`,
-    group: "USCIS RFEs",
+    group: faker.helpers.weightedArrayElement(RFE_GROUP_WEIGHTS),
     attorney,
     overrides: {
       status: { label: status },
@@ -319,12 +381,25 @@ export function generateAppointmentData(
     { value: "", weight: 45 },
   ]);
 
+  // Weighted group assignment determines date range
+  const group = faker.helpers.weightedArrayElement([
+    { value: "Upcoming", weight: 25 },
+    { value: "Past Consults", weight: 35 },
+    { value: "Today's consults", weight: 10 },
+    { value: "Hire", weight: 15 },
+    { value: "No Hire", weight: 15 },
+  ]);
+  const consultDate =
+    group === "Upcoming" ? generateDate(1, 30) :
+    group === "Today's consults" ? generateDate(0, 0) :
+    generateDate(-90, -1);
+
   return {
     name: profile.name,
-    group: "Past Consults",
+    group,
     overrides: {
       status: { label: status },
-      consult_date: { date: generateDate(-90, -1) },
+      consult_date: { date: consultDate },
       first_name: firstName,
       last_name: lastName,
       phone: generatePhone(),
@@ -353,7 +428,7 @@ export function generateJailIntakeData(
 
   return {
     name: `${name} - Jail Intake`,
-    group: "Jail Intakes",
+    group: faker.helpers.weightedArrayElement(JAIL_INTAKE_GROUP_WEIGHTS),
     overrides: {
       status: { label: status },
       detention_facility: { label: facility },

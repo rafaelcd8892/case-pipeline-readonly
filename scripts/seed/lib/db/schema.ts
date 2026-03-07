@@ -4,7 +4,7 @@
 
 import type { Database } from "bun:sqlite";
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 const SCHEMA_SQL = `
 -- =============================================================================
@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     notes TEXT,
     next_interaction TEXT,
     priority TEXT,
+    group_title TEXT,
     address TEXT,
     raw_column_values TEXT,
     sync_status TEXT NOT NULL DEFAULT 'pending',
@@ -160,6 +161,8 @@ CREATE INDEX IF NOT EXISTS idx_board_items_board ON board_items(board_key);
 CREATE INDEX IF NOT EXISTS idx_board_items_status ON board_items(status);
 CREATE INDEX IF NOT EXISTS idx_board_items_profile ON board_items(profile_local_id);
 CREATE INDEX IF NOT EXISTS idx_board_items_next_date ON board_items(next_date);
+CREATE INDEX IF NOT EXISTS idx_board_items_group ON board_items(board_key, group_title);
+CREATE INDEX IF NOT EXISTS idx_profiles_group ON profiles(group_title);
 CREATE INDEX IF NOT EXISTS idx_relationships_source ON item_relationships(source_local_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_target ON item_relationships(target_local_id);
 `;
@@ -327,6 +330,18 @@ export function initializeSchema(db: Database): void {
           VALUES (new.id, new.name, new.email, new.phone, new.address);
         END;
       `);
+    }
+
+    // Migration v5 → v6: add group_title to profiles + index on board_items group
+    if (fromVersion < 6) {
+      const hasColumn = db
+        .query("SELECT COUNT(*) as cnt FROM pragma_table_info('profiles') WHERE name='group_title'")
+        .get() as { cnt: number };
+      if (!hasColumn || hasColumn.cnt === 0) {
+        db.exec("ALTER TABLE profiles ADD COLUMN group_title TEXT");
+      }
+      db.exec("CREATE INDEX IF NOT EXISTS idx_board_items_group ON board_items(board_key, group_title)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_profiles_group ON profiles(group_title)");
     }
 
     db.exec(`UPDATE schema_version SET version = ${SCHEMA_VERSION}`);

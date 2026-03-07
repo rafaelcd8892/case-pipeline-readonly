@@ -14,6 +14,7 @@ import {
   faker,
   PRIORITIES,
 } from "./column-generators";
+import { PROFILE_GROUPS } from "../constants";
 
 export interface GeneratedProfile {
   localId: string;
@@ -23,6 +24,7 @@ export interface GeneratedProfile {
   notes: string;
   nextInteraction: string;
   priority: string;
+  groupTitle: string;
   columnValues: Record<string, unknown>;
 }
 
@@ -53,6 +55,14 @@ export class ProfileFactory {
     const priority = faker.helpers.arrayElement(PRIORITIES);
     const nextInteraction = generateDate(1, 30);
 
+    // Weighted group assignment: mostly Active Clients
+    const groupTitle = faker.helpers.weightedArrayElement([
+      { value: "Active Clients", weight: 65 },
+      { value: "Non-clients", weight: 20 },
+      { value: "Closed clients", weight: 10 },
+      { value: "Clinic Profiles (non clients)", weight: 5 },
+    ]);
+
     const columnValues = this.buildColumnValues(options.boardConfig, {
       name,
       email,
@@ -70,6 +80,7 @@ export class ProfileFactory {
       notes,
       nextInteraction,
       priority,
+      groupTitle,
       columnValues,
     };
   }
@@ -102,8 +113,8 @@ export class ProfileFactory {
     const stmt = this.db.prepare(`
       INSERT INTO profiles (
         batch_id, local_id, name, email, phone, notes,
-        next_interaction, priority, raw_column_values
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        next_interaction, priority, group_title, raw_column_values
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -115,6 +126,7 @@ export class ProfileFactory {
       profile.notes,
       profile.nextInteraction,
       profile.priority,
+      profile.groupTitle,
       JSON.stringify(profile.columnValues)
     );
   }

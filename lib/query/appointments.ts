@@ -47,7 +47,7 @@ export interface AppointmentsResult {
 interface AppointmentOptions {
   attorney?: string;
   date?: string;
-  range?: "day" | "week";
+  range?: "day" | "week" | "upcoming" | "all";
 }
 
 // =============================================================================
@@ -69,8 +69,22 @@ export function getAppointments(
   const dateStr = opts.date ?? formatDate(today);
   const range = opts.range ?? "day";
 
-  const endDate =
-    range === "week" ? addDays(dateStr, 7) : dateStr;
+  // Build date filter clause based on range
+  let dateClause: string;
+  const dateParams: string[] = [];
+  if (range === "all") {
+    // No date filter — show everything
+    dateClause = "AND bi.next_date IS NOT NULL";
+  } else if (range === "upcoming") {
+    // Today and forward
+    dateClause = "AND bi.next_date >= ?";
+    dateParams.push(dateStr);
+  } else {
+    // day or week — bounded range
+    const endDate = range === "week" ? addDays(dateStr, 7) : dateStr;
+    dateClause = "AND bi.next_date >= ? AND bi.next_date <= ?";
+    dateParams.push(dateStr, endDate);
+  }
 
   // Build query with optional attorney filter
   const hasAttorneyFilter = opts.attorney && opts.attorney !== "all";
@@ -89,20 +103,19 @@ export function getAppointments(
       p.email AS profileEmail,
       p.phone AS profilePhone,
       p.priority AS profilePriority,
+      p.group_title AS profileGroupTitle,
       p.address AS profileAddress
     FROM board_items bi
     LEFT JOIN profiles p ON p.local_id = bi.profile_local_id
     WHERE bi.board_key IN (${BOARD_KEY_PLACEHOLDERS})
-      AND bi.next_date >= ?
-      AND bi.next_date <= ?
+      ${dateClause}
       ${hasAttorneyFilter ? "AND bi.attorney = ?" : ""}
     ORDER BY bi.next_date ASC, bi.name ASC
   `;
 
   const params: (string | number)[] = [
     ...BOARD_KEY_LIST,
-    dateStr,
-    endDate,
+    ...dateParams,
   ];
   if (hasAttorneyFilter) {
     params.push(opts.attorney!);
@@ -121,6 +134,7 @@ export function getAppointments(
           email: row.profileEmail,
           phone: row.profilePhone,
           priority: row.profilePriority,
+          groupTitle: row.profileGroupTitle,
           address: row.profileAddress,
         }
       : null;
@@ -247,6 +261,7 @@ interface RawAppointmentRow {
   profileEmail: string | null;
   profilePhone: string | null;
   profilePriority: string | null;
+  profileGroupTitle: string | null;
   profileAddress: string | null;
 }
 

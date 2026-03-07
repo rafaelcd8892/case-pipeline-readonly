@@ -312,8 +312,8 @@ describe("handleListClients", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.data.length).toBe(2);
+    expect(body.data.profiles.length).toBe(2);
+    expect(body.data.total).toBe(2);
   });
 
   test("respects limit param", async () => {
@@ -322,7 +322,7 @@ describe("handleListClients", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
-    expect(body.data.length).toBe(1);
+    expect(body.data.profiles.length).toBe(1);
   });
 
   test("respects offset param", async () => {
@@ -331,9 +331,9 @@ describe("handleListClients", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
-    expect(body.data.length).toBe(1);
+    expect(body.data.profiles.length).toBe(1);
     // ORDER BY name: "Carlos Garcia" then "Maria Garcia" — offset=1 gives Maria
-    expect(body.data[0].name).toBe("Maria Garcia");
+    expect(body.data.profiles[0].name).toBe("Maria Garcia");
   });
 
   test("clamps negative limit to 1", async () => {
@@ -342,7 +342,7 @@ describe("handleListClients", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
-    expect(body.data.length).toBeLessThanOrEqual(1);
+    expect(body.data.profiles.length).toBeLessThanOrEqual(1);
   });
 
   test("treats negative offset as 0", async () => {
@@ -351,7 +351,7 @@ describe("handleListClients", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
-    expect(body.data.length).toBe(2);
+    expect(body.data.profiles.length).toBe(2);
   });
 });
 
