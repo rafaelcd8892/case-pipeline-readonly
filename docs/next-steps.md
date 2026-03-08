@@ -119,6 +119,58 @@ Use real Monday.com data for testing alongside the existing fake seeder data, wi
 
 ---
 
+## Phase — Case Progress Map (Modular Visual Workflow)
+
+### Goal
+Give staff and attorneys an instant, visual understanding of where any client's cases stand — what's done, what's pending, and what's missing — without digging through boards.
+
+### Core Concept: Modular Lifecycle Maps
+Each case type (court case, open form, fee K, appeal, FOIA, I-918B, etc.) has its own defined lifecycle — a sequence of expected stages and artifacts. The dashboard assembles a per-client view by snapping together only the modules relevant to that client's actual cases.
+
+**Example**: A client with a court case + an open form + a fee K sees three progress modules. A client with just a consult sees one. Each module shows its own stages independently.
+
+### How It Works
+
+**1. Define workflows per case type**
+Each board type gets a stage map — the expected milestones in order. Examples:
+
+- **Court Case**: NTA filed → Hearing scheduled → Evidence deadline → Brief filed → WPS filed → Application filed → Individual Hearing → Decision
+- **Open Form (USCIS)**: Form assigned → Forms sent to client → Forms appointment → Filed → Receipt received → Biometrics → Interview scheduled → Interview → Decision
+- **Fee K (Contract)**: Contract created → Sent to client → Signed → Payment received → Hire date set → Paralegal assigned
+- **Appeal**: Notice of Appeal filed → Brief schedule received → Brief due → Brief filed → Decision
+- **FOIA**: Request filed → Acknowledgment received → Results received → Follow-up
+
+**2. Derive stage from existing data**
+Each stage maps to concrete data points already in the boards:
+- A column value being non-empty (e.g., `brief_filed_on` has a date → "Brief filed" is complete)
+- A status column value (e.g., status = "Filed" → that stage is done)
+- A file column having an attachment
+- A date column being in the past vs future
+
+No manual stage tracking needed — the map reads what's already in Monday.com/SQLite.
+
+**3. Visual rendering**
+- Horizontal progress bar or stepped pipeline per case
+- Completed stages: solid/green, collapsed
+- Current stage: highlighted/active
+- Future stages: gray/outlined
+- Missing/overdue: red flag (e.g., evidence deadline passed but no evidence filed)
+
+**4. Assembled per profile**
+The client's 360 view shows all their active case modules stacked. Completed cases collapse to a single "done" line. The attorney sees at a glance: "3 active matters, court case is at hearing stage, open form waiting on receipt, fee K fully signed."
+
+### What Needs to Be Built
+1. **Workflow definitions** — YAML or TypeScript config defining stages per board type, with the column/condition that marks each stage complete
+2. **Stage resolver** — function that takes a board item's column values and returns which stages are complete/pending/overdue
+3. **CaseProgressMap component** — React component rendering the visual pipeline for one case
+4. **ProfileProgressView component** — assembles all CaseProgressMap modules for a client
+5. **Integration** — new tab or section in ClientView (possibly the Overview tab)
+
+### Why This Matters
+This is the feature that turns the dashboard from a "data viewer" into a "case management tool." Staff stops asking "what's the status?" — they see it. Attorneys stop forgetting deadlines — they're red on the map. New staff understands a case in seconds instead of clicking through 5 boards.
+
+---
+
 ## Deferred — Monday.com Write-Back
 
 The appointments page is the first feature that will need editing (update status, add notes, reschedule). `TODO(monday-write)` markers are placed in the query layer and component. See `docs/decisions.md` for the planned write-back architecture.
