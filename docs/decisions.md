@@ -226,3 +226,36 @@ Both options appear when a card has more than 2 notes. The modal supports Escape
 **Context**: The client view had two redundant components showing profile information: a sticky header bar and a separate ProfileCard below it. After adding DOB, Place of Birth, and A-Number to the ProfileCard, the duplication became obvious.
 
 **Decision**: Merged everything into a single sticky header that contains the full profile: avatar, name, priority badge, action buttons, email, phone, address, DOB, place of birth, and A-Number. Removed the separate ProfileCard from the view. The A-Number icon uses an "A#" text label (the standard shorthand for Alien Registration Number) instead of a generic "T" text icon. Added responsive CSS for the tab bar (reduced padding at <=768px) to accommodate 7 tabs on smaller screens.
+
+---
+
+## 2026-03-08 — Board ID Corrections & Calendaring Board
+
+### Wrong Board IDs
+
+**Context**: Running a fresh Monday.com snapshot revealed the Motions board was returning only 2 items. Investigation showed 3 board IDs in `config/boards.yaml` were pointing to the wrong boards.
+
+**Corrections**:
+| Board | Old (wrong) ID | New (correct) ID |
+|-------|----------------|------------------|
+| Motions | `7864109176` | `8025556892` |
+| FOIAs | `7862404612` | `8025590516` |
+| Appeals | `7864113013` | `3473957885` |
+
+Updated in: `config/boards.yaml`, `scripts/fetch-profile.ts`, `scripts/sample-real-data.ts`, `docs/boards.md`.
+
+### Calendaring Board (19th Board)
+
+**Context**: A staff member maintains a separate "Calendaring" board (`9287895872`) to track deadline-bearing notices (hearing notices, RFEs, etc.). She links each entry to the relevant case (Court Case, RFE, or Open Form) and adds deadlines + uploads the notice document. Those dates then mirror back into the case boards.
+
+**What it is**: A cross-cutting deadline management board. Items don't link to profiles directly — they link to cases. The profile connection is indirect (Profile → Court Case → Calendaring item).
+
+**How it connects**:
+- Calendaring → Court Cases (hearing dates, fee due dates)
+- Calendaring → RFEs (due dates, warning dates, issue dates)
+- Calendaring → Open Forms (interview dates)
+- Case boards mirror Calendaring columns back (e.g., `hearing_date_calendaring`, `due_date_calendaring`, `warning_calendaring`)
+
+**Decision**: Added as the 19th board in `config/boards.yaml` with a minimal column config (status, board_relation links, dates, file). The full column structure will be discovered via snapshot or `sync-config`. Calendaring items go into `board_items` with `board_key = 'calendaring'` — no schema changes needed. Relationships stored in `item_relationships`.
+
+**Dashboard implications**: Calendaring enables a unified "Deadlines" view without stitching together queries across multiple boards. Also provides access to uploaded notice documents that live on Calendaring items (not on the case boards themselves).

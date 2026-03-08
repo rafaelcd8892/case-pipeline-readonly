@@ -12,9 +12,9 @@ const BOARD_ID_TO_KEY: Record<string, string> = {
   "9283837796": "appointments_wh",
   "8094412694": "_fa_jail_intakes",
   "8025618300": "_na_originals_cards_notices",
-  "7862404612": "foias",
+  "8025590516": "foias",
   "8025566986": "_cd_open_forms",
-  "7864109176": "motions",
+  "8025556892": "motions",
   "8025546360": "court_cases",
   "8025538497": "_lt_i918b_s",
   "8025531784": "address_changes",
@@ -23,9 +23,10 @@ const BOARD_ID_TO_KEY: Record<string, string> = {
   "8025389724": "appointments_lb",
   "8025383981": "appointments_m",
   "8025265377": "profiles",
-  "7864113013": "appeals",
+  "3473957885": "appeals",
   "7788520205": "appointments_r",
   "4299007012": "litigation",
+  "9287895872": "calendaring",
 };
 
 async function fetchItemFull(itemId: string) {

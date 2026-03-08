@@ -800,7 +800,7 @@ boards:
         resolve: by_type
         type: board_relation
   foias:
-    id: "7862404612"
+    id: "8025590516"
     name: FOIAs
     columns:
       subitems:
@@ -1071,7 +1071,7 @@ boards:
         resolve: by_type
         type: board_relation
   motions:
-    id: "7864109176"
+    id: "8025556892"
     name: Motions
     columns:
       subitems:
@@ -2800,7 +2800,7 @@ boards:
         resolve: by_type
         type: board_relation
   appeals:
-    id: "7864113013"
+    id: "3473957885"
     name: Appeals
     columns:
       subitems:
@@ -3040,3 +3040,31 @@ boards:
       monday_doc_v2:
         resolve: by_type
         type: direct_doc
+  calendaring:
+    id: "9287895872"
+    name: Calendaring
+    columns:
+      subitems:
+        resolve: by_type
+        type: subtasks
+      status:
+        resolve: by_type
+        type: status
+      court_cases:
+        resolve: by_type
+        type: board_relation
+      rfes:
+        resolve: by_type
+        type: board_relation
+      open_forms:
+        resolve: by_type
+        type: board_relation
+      due_date:
+        resolve: by_type
+        type: date
+      warning:
+        resolve: by_type
+        type: date
+      notice:
+        resolve: by_type
+        type: file

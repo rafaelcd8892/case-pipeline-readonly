@@ -15,9 +15,9 @@ const ALL_BOARD_IDS: Record<string, string> = {
   appointments_wh: "9283837796",
   _fa_jail_intakes: "8094412694",
   _na_originals_cards_notices: "8025618300",
-  foias: "7862404612",
+  foias: "8025590516",
   _cd_open_forms: "8025566986",
-  motions: "7864109176",
+  motions: "8025556892",
   court_cases: "8025546360",
   _lt_i918b_s: "8025538497",
   address_changes: "8025531784",
@@ -26,9 +26,10 @@ const ALL_BOARD_IDS: Record<string, string> = {
   appointments_lb: "8025389724",
   appointments_m: "8025383981",
   profiles: PROFILES_BOARD_ID,
-  appeals: "7864113013",
+  appeals: "3473957885",
   appointments_r: "7788520205",
   litigation: "4299007012",
+  calendaring: "9287895872",
 };
 
 interface SampleProfile {

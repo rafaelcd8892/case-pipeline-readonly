@@ -86,6 +86,39 @@ at ClientsPage2
 
 ---
 
+## Phase — Live Data Mode (Dual Database)
+
+### Goal
+Use real Monday.com data for testing alongside the existing fake seeder data, without exposing sensitive client information in the repository.
+
+### Approach: Two Databases, One Switch
+- **`data/seed.db`** — fake data from the seeder (default, safe to regenerate)
+- **`data/live.db`** — real Monday.com data, **gitignored**, never leaves the developer's machine
+- **`DB_SOURCE=seed|live`** env var switches which database the app reads from
+- Same schema, same query layer, same UI — just different data underneath
+
+### Why This Over Anonymization
+- Forces building the **sync engine** (Monday.com → SQLite), which is needed for production anyway — no throwaway work
+- Zero PII risk — `live.db` is a local file, gitignored
+- See *exactly* what production will look like — no anonymization artifacts
+- Any developer without a Monday.com token just uses `seed` mode (the default)
+- CI always runs against `seed` — no secrets needed
+
+### What Needs to Be Built
+1. **Env-based DB switching** — update `lib/db/connection.ts` (or equivalent) to read `DB_SOURCE` and resolve the path to `seed.db` or `live.db`
+2. **Sync script** (`scripts/sync.ts` or similar) — fetches from Monday.com API, maps `MondayItem` → SQLite rows across all 18 boards, writes into `live.db`
+3. **Gitignore `data/live.db`** (and WAL/SHM files)
+4. **Document in `.env.example`** the `DB_SOURCE` and `MONDAY_API_TOKEN` vars
+
+### Existing Building Blocks
+- API client with retry/rate-limit handling: `lib/monday/api.ts`
+- Board config with all 18 board IDs: `config/boards.yaml`
+- Column resolver: `lib/monday/column-resolver.ts`
+- Real data samples already fetched: `data/samples/*.json`
+- Snapshot script as reference for fetching all boards: `scripts/snapshot.ts`
+
+---
+
 ## Deferred — Monday.com Write-Back
 
 The appointments page is the first feature that will need editing (update status, add notes, reschedule). `TODO(monday-write)` markers are placed in the query layer and component. See `docs/decisions.md` for the planned write-back architecture.
